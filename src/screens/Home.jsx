@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import WaveProgress from '../components/WaveProgress'
 import SimpleWave from '../components/SimpleWave'
 import WaterSlider  from '../components/WaterSlider'
+import WeeklyProgress from '../components/WeeklyProgress'
 import useStore     from '../store/useStore'
 
 export default function HomeScreen() {
@@ -11,6 +12,7 @@ export default function HomeScreen() {
     myIntakeToday, partnerIntakeToday,
     nudgeActive, nudgeCooldown,
     addIntake, removeLastIntake, sendNudge,
+    historyData,
   } = useStore()
 
   const [showUndo, setShowUndo]   = useState(false)
@@ -25,6 +27,15 @@ export default function HomeScreen() {
   const myPct      = Math.min(myIntakeToday / myGoal, 1)
   const partnerPct = Math.min(partnerIntakeToday / partnerGoal, 1)
   const isGoalDone = myPct >= 1
+  const remaining  = Math.max(0, myGoal - myIntakeToday)
+  
+  // Calculate hydration status
+  const hydrationStatus = useMemo(() => {
+    if (myPct >= 1) return { text: '水分充足', color: 'text-emerald-400', emoji: '✅' }
+    if (myPct >= 0.8) return { text: '接近目標', color: 'text-blue-400', emoji: '💧' }
+    if (myPct >= 0.5) return { text: '水平衡', color: 'text-aqua-400', emoji: '⚖️' }
+    return { text: '水分不足', color: 'text-amber-400', emoji: '⚠️' }
+  }, [myPct])
 
   const handleAdd = async (ml) => {
     setLastAdded(ml)
@@ -73,40 +84,45 @@ export default function HomeScreen() {
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div
-        className="px-5 pt-4 pb-2 flex items-center justify-between"
+        className="pb-2"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
       >
-        <div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight">
-            {myEmoji} 今日水量
-          </h1>
-          <p className="text-xs text-white/40 mt-0.5">
-            {new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' })}
-          </p>
-        </div>
+        <div className="px-5 pb-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-extrabold text-white tracking-tight">
+              {new Date().toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' })}
+            </h1>
+            <p className="text-xs text-white/40 mt-0.5">
+              {myEmoji} {myName} 的水分追蹤
+            </p>
+          </div>
 
-        <AnimatePresence>
-          {isGoalDone && (
-            <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0 }}
-              className="px-3 py-1.5 rounded-full bg-emerald-500/20
-                         border border-emerald-400/40 text-emerald-300
-                         text-xs font-bold"
-            >
-              ✅ 達標！
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {isGoalDone && (
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                exit={{ scale: 0 }}
+                className="px-3 py-1.5 rounded-full bg-emerald-500/20
+                           border border-emerald-400/40 text-emerald-300
+                           text-xs font-bold"
+              >
+                ✅ 已達標
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        
+        {/* Weekly Progress */}
+        <WeeklyProgress historyData={historyData} goal={myGoal} />
       </div>
 
       {/* ── Scrollable content ─────────────────────────────── */}
-      <div className="scroll-area px-5 space-y-4 pb-4">
+      <div className="scroll-area px-5 space-y-4">
 
-        {/* ── Main wave circle ───────────────────────────── */}
+        {/* ── Main progress circle ───────────────────────── */}
         <motion.div
-          className="flex flex-col items-center justify-center py-2"
+          className="flex flex-col items-center justify-center py-4"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 150, damping: 20 }}
@@ -116,6 +132,32 @@ export default function HomeScreen() {
             goal={myGoal}
             size={220}
           />
+          
+          {/* Status text below wave */}
+          <motion.div 
+            className="mt-3 text-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-xs text-white/40 font-semibold">水平衡</div>
+            <div className={`text-lg font-extrabold mt-1 ${hydrationStatus.color}`}>
+              {hydrationStatus.emoji} {hydrationStatus.text}
+            </div>
+          </motion.div>
+          
+          {/* Total vs Remaining */}
+          <div className="flex items-center gap-6 mt-4">
+            <div className="text-center">
+              <div className="text-2xl font-extrabold text-aqua-300">{myIntakeToday}ml</div>
+              <div className="text-[10px] text-white/40 mt-1">總計</div>
+            </div>
+            <div className="h-8 w-px bg-white/10"></div>
+            <div className="text-center">
+              <div className="text-2xl font-extrabold text-white/60">{remaining}ml</div>
+              <div className="text-[10px] text-white/40 mt-1">剩餘</div>
+            </div>
+          </div>
         </motion.div>
 
         {/* ── Quick stats row ───────────────────────────── */}

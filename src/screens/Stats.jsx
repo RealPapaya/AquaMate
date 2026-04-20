@@ -103,7 +103,7 @@ export default function StatsScreen() {
     loadTodayHourly()
   }, [period, user, partner])
 
-        // Filter data by period
+                // Filter data by period
   const chartData = useMemo(() => {
     // For 'day' period, use hourly data
     if (period === 'day') {
@@ -111,9 +111,11 @@ export default function StatsScreen() {
     }
     
     // For other periods, use daily data
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    
     // If no history data, create a single data point for today
     if (!historyData.length) {
-      const today = new Date()
       const label = today.toLocaleDateString('zh-TW', { weekday: 'short', day: 'numeric' })
       return [{
         date: label,
@@ -125,17 +127,35 @@ export default function StatsScreen() {
     const days = PERIODS.find(p => p.id === period)?.days ?? 7
     const slice = historyData.slice(-days)
 
-    return slice.map(row => {
+    // Map history data
+    const mapped = slice.map(row => {
       const date = new Date(row.log_date)
       const label = period === 'month'
         ? `${date.getMonth() + 1}/${date.getDate()}`
         : date.toLocaleDateString('zh-TW', { weekday: 'short', day: 'numeric' })
+      
+      // Check if this is today's data
+      const isToday = row.log_date === todayStr
+      
       return {
         date:    label,
-        my:      row.my_total,
-        partner: row.partner_total,
+        my:      isToday ? myIntakeToday : row.my_total,  // Use real-time data for today
+        partner: isToday ? partnerIntakeToday : row.partner_total,
       }
     })
+    
+    // If today is not in history data yet, add it
+    const hasToday = slice.some(row => row.log_date === todayStr)
+    if (!hasToday && myIntakeToday > 0) {
+      const label = today.toLocaleDateString('zh-TW', { weekday: 'short', day: 'numeric' })
+      mapped.push({
+        date: label,
+        my: myIntakeToday,
+        partner: partnerIntakeToday,
+      })
+    }
+    
+    return mapped
   }, [historyData, period, todayHourlyData, myIntakeToday, partnerIntakeToday])
 
             // Summary stats
@@ -178,7 +198,25 @@ export default function StatsScreen() {
       else break
     }
 
-    return { myAvg, partnerAvg, myWins, partnerWins, streak, periodLabel }
+                // Calculate comparison with last period
+    let comparison = null
+    if (period !== 'day' && historyData.length > chartData.length) {
+      const currentPeriodData = chartData
+      const previousPeriodData = historyData.slice(-chartData.length * 2, -chartData.length)
+      
+      const currentTotal = currentPeriodData.reduce((s, d) => s + d.my, 0)
+      const previousTotal = previousPeriodData.reduce((s, d) => s + d.my_total, 0)
+      
+      // Only calculate if there's data in previous period
+      if (previousTotal > 0) {
+        comparison = Math.round(((currentTotal - previousTotal) / previousTotal) * 100)
+      } else if (previousPeriodData.length > 0) {
+        // Has previous period but no data, still null
+        comparison = null
+      }
+    }
+
+    return { myAvg, partnerAvg, myWins, partnerWins, streak, periodLabel, comparison }
   }, [chartData, historyData, myGoal, period])
 
     return (
@@ -216,26 +254,156 @@ export default function StatsScreen() {
       {/* ── Scrollable content ─────────────────────────────── */}
       <div className="scroll-area px-5 space-y-4">
 
-        {/* ── Summary stats ────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2">
-                    {[
-            { label: '我的平均',    value: `${stats.myAvg}ml`,      sub: stats.periodLabel, color: 'text-aqua-300' },
-            { label: '隊友平均',    value: `${stats.partnerAvg}ml`, sub: stats.periodLabel, color: 'text-sky-300'  },
-            { label: '我先達標',    value: `${stats.myWins}天`,     sub: '期間內',   color: 'text-emerald-300' },
-            { label: '連續達標',    value: `${stats.streak}天`,     sub: '目前連續', color: 'text-amber-300'   },
-          ].map(s => (
+                  {/* ── Summary stats ────────────────────────────────── */}
+          <div className="space-y-3">
+            {/* Main average card */}
             <motion.div
-              key={s.label}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass px-4 py-3"
+              className="glass px-5 py-4"
             >
-              <div className="text-xs text-white/40 font-semibold">{s.label}</div>
-              <div className={`text-2xl font-extrabold mt-1 tabular-nums ${s.color}`}>{s.value}</div>
-              <div className="text-[10px] text-white/25 mt-0.5">{s.sub}</div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-aqua-400/20 flex items-center justify-center">
+                  <span className="text-2xl">💧</span>
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-white/50 font-semibold">平均每天</div>
+                  <div className="text-3xl font-extrabold text-aqua-300 mt-0.5">{stats.myAvg}ml</div>
+                </div>
+              </div>
             </motion.div>
-          ))}
-        </div>
+            
+                                                {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Total intake card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="glass px-3 py-3"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <span className="text-lg">💧</span>
+                  </div>
+                </div>
+                <div className="text-xl font-extrabold text-blue-300 text-center">
+                  {chartData.reduce((s, d) => s + d.my, 0)}ml
+                </div>
+                <div className="text-[10px] text-white/40 text-center mt-1">總計</div>
+              </motion.div>
+              
+              {/* Comparison card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className={`glass px-3 py-3 ${
+                  stats.comparison === null 
+                    ? '' 
+                    : stats.comparison > 0 
+                      ? 'bg-emerald-500/10 border border-emerald-400/20' 
+                      : stats.comparison < 0
+                        ? 'bg-red-500/10 border border-red-400/20'
+                        : ''
+                }`}
+              >
+                {stats.comparison === null ? (
+                  <>
+                    <div className="flex items-center justify-center mb-1">
+                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                        <span className="text-lg">📋</span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-white/30 text-center">
+                      無記錄
+                    </div>
+                    <div className="text-[10px] text-white/30 text-center mt-1">
+                      對比上{period === 'week' ? '週' : '月'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center mb-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        stats.comparison > 0 ? 'bg-emerald-500/20' : stats.comparison < 0 ? 'bg-red-500/20' : 'bg-white/10'
+                      }`}>
+                        <span className="text-lg">
+                          {stats.comparison > 0 ? '↗️' : stats.comparison < 0 ? '↘️' : '➖'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`text-xl font-extrabold text-center ${
+                      stats.comparison > 0 ? 'text-emerald-300' : stats.comparison < 0 ? 'text-red-300' : 'text-white/50'
+                    }`}>
+                      {stats.comparison > 0 ? '+' : ''}{stats.comparison}%
+                    </div>
+                    <div className="text-[10px] text-white/40 text-center mt-1">
+                      對比上{period === 'week' ? '週' : '月'}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+              
+                            
+              {/* Streak card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="glass px-3 py-3"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <span className="text-lg">✅</span>
+                  </div>
+                </div>
+                <div className="text-xl font-extrabold text-purple-300 text-center">
+                  {stats.streak}天
+                </div>
+                <div className="text-[10px] text-white/40 text-center mt-1">連續達標</div>
+              </motion.div>
+              
+              {/* Wins card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="glass px-3 py-3"
+              >
+                <div className="flex items-center justify-center mb-1">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <span className="text-lg">🏆</span>
+                  </div>
+                </div>
+                <div className="text-xl font-extrabold text-amber-300 text-center">
+                  {stats.myWins}天
+                </div>
+                <div className="text-[10px] text-white/40 text-center mt-1">我先達標</div>
+              </motion.div>
+            </div>
+            
+            {/* Partner average card (if has partner) */}
+            {partner && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="glass px-5 py-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-400/20 flex items-center justify-center">
+                    <span className="text-xl">{partner.avatar_emoji || '💧'}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/50 font-semibold">{partner.display_name} 平均</div>
+                    <div className="text-lg font-extrabold text-sky-300 mt-0.5">{stats.partnerAvg}ml</div>
+                  </div>
+                </div>
+                <div className="text-xs text-white/40">{stats.periodLabel}</div>
+              </motion.div>
+            )}
+          </div>
 
         {/* ── Line chart ───────────────────────────────────── */}
         <AnimatePresence mode="wait">

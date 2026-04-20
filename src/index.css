@@ -63,9 +63,9 @@ body {
     padding-top: calc(var(--safe-top) + 0px);
   }
 
-  .scroll-area {
+    .scroll-area {
     @apply flex-1 overflow-y-auto;
-    padding-bottom: calc(var(--safe-bottom) + 80px);
+    padding-bottom: calc(var(--safe-bottom) + 100px);
   }
 
   .stat-chip {
