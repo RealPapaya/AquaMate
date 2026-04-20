@@ -30,8 +30,9 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function StatsScreen() {
-  const { profile, partner, historyData, historyLoaded, loadHistory } = useStore()
+  const { profile, partner, user, historyData, historyLoaded, loadHistory } = useStore()
   const [period, setPeriod] = useState('week')
+  const [todayHourlyData, setTodayHourlyData] = useState([])
 
   const myName      = profile?.display_name ?? '我'
   const partnerName = partner?.display_name  ?? '隊友'
@@ -40,12 +41,74 @@ export default function StatsScreen() {
   useEffect(() => {
     loadHistory()
   }, [loadHistory])
+  
+  // Load today's hourly data when period is 'day'
+  useEffect(() => {
+    if (period !== 'day' || !user) return
+    
+    const loadTodayHourly = async () => {
+      const { supabase } = await import('../lib/supabase')
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+      
+      // Get my logs
+      const { data: myLogs } = await supabase
+        .from('intake_logs')
+        .select('amount_ml, logged_at')
+        .eq('user_id', user.id)
+        .gte('logged_at', todayStart.toISOString())
+        .order('logged_at', { ascending: true })
+      
+      // Get partner logs if exists
+      let partnerLogs = []
+      if (partner) {
+        const { data } = await supabase
+          .from('intake_logs')
+          .select('amount_ml, logged_at')
+          .eq('user_id', partner.id)
+          .gte('logged_at', todayStart.toISOString())
+          .order('logged_at', { ascending: true })
+        partnerLogs = data || []
+      }
+      
+      // Group by hour
+      const hourlyMap = {}
+      for (let h = 0; h < 24; h++) {
+        hourlyMap[h] = { hour: `${h}:00`, my: 0, partner: 0 }
+      }
+      
+      myLogs?.forEach(log => {
+        const hour = new Date(log.logged_at).getHours()
+        hourlyMap[hour].my += log.amount_ml
+      })
+      
+      partnerLogs.forEach(log => {
+        const hour = new Date(log.logged_at).getHours()
+        hourlyMap[hour].partner += log.amount_ml
+      })
+      
+      // Convert to array and filter to show only relevant hours
+      const currentHour = new Date().getHours()
+      const data = Object.values(hourlyMap)
+        .filter((_, i) => i <= currentHour + 1) // Show up to next hour
+      
+      setTodayHourlyData(data)
+    }
+    
+    loadTodayHourly()
+  }, [period, user, partner])
 
-  // Filter data by period
+    // Filter data by period
   const chartData = useMemo(() => {
+    // For 'day' period, use hourly data
+    if (period === 'day') {
+      return todayHourlyData
+    }
+    
+    // For other periods, use daily data
     if (!historyData.length) return []
     const days = PERIODS.find(p => p.id === period)?.days ?? 7
-    const slice = period === 'day' ? historyData.slice(-1) : historyData.slice(-days)
+    const slice = historyData.slice(-days)
 
     return slice.map(row => {
       const date = new Date(row.log_date)
@@ -58,7 +121,7 @@ export default function StatsScreen() {
         partner: row.partner_total,
       }
     })
-  }, [historyData, period])
+  }, [historyData, period, todayHourlyData])
 
   // Summary stats
   const stats = useMemo(() => {
@@ -143,8 +206,10 @@ export default function StatsScreen() {
             transition={{ duration: 0.22 }}
             className="glass px-4 py-4"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-white/70">攝水趨勢對比</span>
+                        <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-bold text-white/70">
+                {period === 'day' ? '今日每小時攝水量' : '攝水趨勢對比'}
+              </span>
               <div className="flex gap-3">
                 <span className="flex items-center gap-1 text-xs text-aqua-300 font-semibold">
                   <span className="w-3 h-0.5 bg-aqua-300 rounded inline-block" />{myName}
@@ -157,6 +222,12 @@ export default function StatsScreen() {
               </div>
             </div>
 
+                        {period === 'day' && chartData.length > 0 && (
+              <div className="text-[10px] text-white/30 mb-2">
+                📊 顯示今日每小時累計攝水量（至目前時間）
+              </div>
+            )}
+            
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
@@ -172,15 +243,17 @@ export default function StatsScreen() {
                   </defs>
 
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis
-                    dataKey="date" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }}
-                    tickLine={false} axisLine={false}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
+                                    <XAxis
+                    dataKey={period === 'day' ? 'hour' : 'date'}
                     tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }}
                     tickLine={false} axisLine={false}
-                    tickFormatter={v => v >= 1000 ? `${v/1000}L` : `${v}`}
+                    interval={period === 'day' ? 2 : 'preserveStartEnd'}
+                  />
+                                    <YAxis
+                    tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10 }}
+                    tickLine={false} axisLine={false}
+                    tickFormatter={v => v >= 1000 ? `${v/1000}L` : `${v}ml`}
+                    label={period === 'day' ? { value: 'ml', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.3)', fontSize: 9 } : undefined}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
                   <ReferenceLine

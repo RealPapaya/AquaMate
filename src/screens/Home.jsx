@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import WaveProgress from '../components/WaveProgress'
+import SimpleWave from '../components/SimpleWave'
 import WaterSlider  from '../components/WaterSlider'
 import useStore     from '../store/useStore'
 
@@ -110,12 +111,12 @@ export default function HomeScreen() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 150, damping: 20 }}
         >
-          <WaveProgress
+          <SimpleWave
             current={myIntakeToday}
             goal={myGoal}
             size={220}
-            name={myName}
           />
+          <div className="text-xs text-white/60 mt-2 text-center">{myName}</div>
         </motion.div>
 
         {/* ── Quick stats row ───────────────────────────── */}

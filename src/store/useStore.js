@@ -101,17 +101,19 @@ const useStore = create((set, get) => ({
     return { error }
   },
 
-  loadPartner: async () => {
+    loadPartner: async () => {
     const { user } = get()
     if (!user) return null
 
-    const { data: pair } = await supabase
+    const { data: pairs, error: pairError } = await supabase
       .from('pairs')
       .select('*')
       .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-      .single()
+      .limit(1)
 
-    if (!pair) return null
+    if (pairError || !pairs || pairs.length === 0) return null
+    
+    const pair = pairs[0]
 
     const partnerId = pair.user_a_id === user.id ? pair.user_b_id : pair.user_a_id
     set({ pairId: pair.id })

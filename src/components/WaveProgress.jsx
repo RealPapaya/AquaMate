@@ -48,16 +48,22 @@ export default function WaveProgress({
     fillYRef.current = size * (1 - v)
   })
 
-  // Continuous wave RAF loop
+    // Continuous wave RAF loop
   const tick = useCallback(() => {
     offsetRef.current += mini ? 0.025 : 0.018
     const fillY = fillYRef.current
     const amp   = mini ? 4 : 8
     const w1 = buildWavePath(fillY,           offsetRef.current,       amp,     size, size)
     const w2 = buildWavePath(fillY + amp * 0.5, offsetRef.current + Math.PI, amp * 0.6, size, size)
+    
+    // Debug: log wave paths occasionally
+    if (Math.random() < 0.01) {
+      console.log('Wave fillY:', fillY, 'pct:', pct, 'paths exist:', !!w1, !!w2)
+    }
+    
     setWaves({ w1, w2 })
     rafRef.current = requestAnimationFrame(tick)
-  }, [size, mini])
+  }, [size, mini, pct])
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(tick)
@@ -149,9 +155,9 @@ export default function WaveProgress({
           </filter>
         </defs>
 
-        {/* Track circle */}
+                {/* Track circle */}
         <circle cx={size / 2} cy={size / 2} r={radius}
-          fill="rgba(0,20,45,0.8)"
+          fill="#0a1628"
           stroke="rgba(0,196,216,0.2)" strokeWidth="2" />
 
         {/* Wave fills clipped to circle */}
