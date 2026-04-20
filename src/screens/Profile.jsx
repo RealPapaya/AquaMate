@@ -90,8 +90,36 @@ export default function ProfileScreen() {
     }
   }, [unpair, unpairConfirm])
 
-  return (
-    <div className="screen" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
+    return (
+    <div className="screen relative" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
+
+      {/* ── Pair Notification ───────────────────────────────── */}
+      <AnimatePresence>
+        {pairNotification && (
+          <motion.div
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className="absolute top-0 left-0 right-0 z-50
+                       bg-gradient-to-r from-emerald-500/90 to-green-500/90
+                       backdrop-blur-xl px-5 py-4 flex items-center gap-3"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+          >
+            <motion.span
+              animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 0.5, repeat: 2 }}
+              style={{ fontSize: '24px' }}
+            >
+              💑
+            </motion.span>
+            <div>
+              <div className="font-bold text-white text-sm">配對成功！</div>
+              <div className="text-xs text-white/70">{pairNotification.partnerName} 與你綁定了 ✨</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between"

@@ -1,0 +1,321 @@
+# AquaMate 水伴專案記憶檔
+
+> 最後更新：2026-04-20  
+> 開發者偏好：繁體中文回覆
+
+---
+
+## 📌 專案概述
+
+**專案名稱**：AquaMate（水伴）  
+**類型**：Progressive Web App (PWA)  
+**用途**：雙人連線喝水追蹤器，情侶/夥伴一起養成喝水習慣  
+**技術棧**：React 18 + Vite + Supabase + Tailwind CSS + Framer Motion
+
+---
+
+## 🎯 核心功能
+
+### 已實現功能
+- ✅ 匿名登入（無需註冊）
+- ✅ 雙人配對系統（邀請連結）
+- ✅ 即時同步水量記錄
+- ✅ Nudge 提醒功能（震動 + 通知）
+- ✅ 成就徽章系統（9種徽章）
+- ✅ 統計圖表（30天歷史 + 每日小時統計）
+- ✅ PWA 離線支持
+- ✅ 配對即時通知（NEW）
+- ✅ 解除配對功能（NEW）
+
+### 待實現功能
+- ⏳ Streak 連續達標徽章解鎖邏輯
+- ⏳ RLS 安全策略重新啟用
+- ⏳ 代碼分割優化（減少包體積）
+
+---
+
+## 🔧 最近修改記錄
+
+### 2026-04-20 - 配對即時通知與解除配對
+
+#### 問題
+1. A 接受 B 的邀請後，B 沒有收到配對成功通知
+2. 沒有解除配對的功能
+3. "永久綁定"措辭不當
+
+#### 解決方案
+**檔案修改**：
+- `src/store/useStore.js`
+  - 重構 `subscribeRealtime` → `startRealtimeSubscription`
+  - 新增監聽 `pairs` INSERT 事件（配對通知）
+  - 新增監聽 `pairs` DELETE 事件（解除配對同步）
+  - 新增 `triggerPairNotification(partnerName)` 方法
+  - 新增 `unpair()` 方法
+  - 新增 `pairNotification` 狀態
+
+- `src/screens/Profile.jsx`
+  - 新增解除配對按鈕（二次確認機制）
+  - 修改 "已永久綁定 💑" → "已綁定"
+  - ✅ 已添加配對通知橫幅（綠色通知）
+
+**Supabase 設定**：
+- ✅ `pairs` 表 Realtime Replication 已啟用
+
+**測試流程**：
+1. 浏览器 B 创建邀请链接
+2. 浏览器 A 接受邀请
+3. A 看到 "配對成功！🎉"
+4. **B 立即收到綠色橫幅通知 "XXX 與你綁定了 ✨"**
+
+---
+
+### 2026-04-20 - PWA Manifest 401 錯誤修復
+
+#### 問題
+Vercel 部署後 `manifest.webmanifest` 返回 401 錯誤
+
+#### 解決方案
+- 修改 `vite.config.js` 新增 `manifestFilename: 'manifest.json'`
+- 修改 `index.html` 新增 `<link rel="manifest" href="/manifest.json" />`
+
+---
+
+### 2026-04-20 - 頁面切換內容消失
+
+#### 問題
+切換「今日」「統計」「個人」頁面時，內容有時不顯示
+
+#### 解決方案
+修改 `src/App.jsx` 布局結構：
+```jsx
+// 外層 div 固定定位
+<div className="absolute inset-0" style={{ paddingBottom: '72px' }}>
+  <AnimatePresence mode="wait">
+    {/* 內層使用相對布局 */}
+    <motion.div className="h-full w-full">
+      <Screen />
+    </motion.div>
+  </AnimatePresence>
+</div>
+```
+
+---
+
+## 📁 專案結構
+
+```
+AquaMate/
+├── src/
+│   ├── screens/          # 主要頁面
+│   │   ├── Home.jsx      # 今日水量頁面
+│   │   ├── Stats.jsx     # 統計圖表頁面
+│   │   └── Profile.jsx   # 個人檔案頁面
+│   ├── components/       # 可重用組件
+│   │   ├── SimpleWave.jsx          # 波浪進度圓圈
+│   │   ├── WaterSlider.jsx         # 喝水滑動選擇器
+│   │   ├── BadgeCard.jsx           # 徽章卡片
+│   │   ├── BottomNav.jsx           # 底部導航欄
+│   │   └── icons/                  # SVG 圖標組件
+│   ├── store/
+│   │   └── useStore.js   # Zustand 全局狀態管理
+│   ├── lib/
+│   │   └── supabase.js   # Supabase 客戶端配置
+│   └── main.jsx          # 應用入口
+├── public/
+│   ├── icon.svg          # PWA 圖標（可縮放）
+│   └── manifest.json     # PWA manifest
+├── .env.local            # 環境變數（本地）
+├── vite.config.js        # Vite 配置
+└── vercel.json           # Vercel 部署配置
+```
+
+---
+
+## 🗄️ Supabase 資料庫結構
+
+### 表格
+- `users` - 用戶檔案（延伸 auth.users）
+- `pairs` - 配對關係（永久綁定）
+- `intake_logs` - 喝水記錄
+- `badges` - 徽章解鎖記錄
+- `nudges` - 提醒訊息記錄
+- `invite_links` - 一次性邀請連結
+
+### 重要函數
+- `get_daily_total(user_id, date)` - 計算單日總量
+- `get_partner_id(user_id)` - 獲取配對對象 ID
+- `get_pair_history(user_id, days)` - 獲取歷史數據（30天）
+
+### Realtime 設定狀態
+✅ **當前狀態**：已啟用以下表的 Replication
+- [x] `pairs` ← **關鍵！配對通知必需**
+- [x] `intake_logs`
+- [x] `nudges`
+- [x] `users`
+
+管理頁面：https://supabase.com/dashboard/project/pzznpnochkenridvjzui/database/replication
+
+### RLS 策略狀態
+⚠️ **當前狀態**：所有表的 RLS 已禁用（開發階段）
+- 生產環境前必須重新啟用並設計簡化策略
+
+---
+
+## 🚀 部署資訊
+
+### Vercel
+- **專案名稱**：aquamate
+- **URL**：https://aqua-mate-62yj25cm3-realpapayas-projects.vercel.app
+- **環境變數**：
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+
+### Supabase
+- **專案 ID**：pzznpnochkenridvjzui
+- **URL**：https://pzznpnochkenridvjzui.supabase.co
+- **認證方式**：Anonymous（自動登入）
+
+---
+
+## 🐛 已知問題與解決方案
+
+### 1. Realtime 無法連接
+**症狀**：Console 顯示 "❌ Realtime error"  
+**解決**：
+1. 檢查 Supabase Dashboard → Database → Replication
+2. 確認相關表已啟用 Replication
+3. 清除瀏覽器快取並重新載入
+
+### 2. 配對通知不顯示
+**症狀**：A 接受邀請後，B 沒收到通知  
+**解決**：
+1. 確認 `pairs` 表 Replication 已啟用
+2. 檢查 Console 是否有 "💑 Someone paired with me!" 日誌
+3. 手動測試：`useStore.getState().triggerPairNotification('測試')`
+
+### 3. 構建警告（非阻塞）
+**警告**：`supabase.js` 同時被靜態和動態導入  
+**影響**：無，可通過代碼分割優化  
+**優先級**：低
+
+---
+
+## 📋 開發檢查清單
+
+### 每次修改後
+- [ ] 執行 `npm run build` 確認無錯誤
+- [ ] 檢查 Console 無異常日誌
+- [ ] 雙瀏覽器測試配對流程
+- [ ] 驗證 Realtime 即時同步
+
+### 部署前
+- [ ] 更新 `memory.md`（本檔案）
+- [ ] 創建 Git commit
+- [ ] 推送到 GitHub
+- [ ] 等待 Vercel 自動部署
+- [ ] 測試線上版本
+
+### 生產環境發布前
+- [ ] 重新啟用 RLS 策略
+- [ ] 移除開發用 Console 日誌
+- [ ] 壓縮圖片資源
+- [ ] 代碼分割優化
+- [ ] 完整雙設備真機測試
+
+---
+
+## 🎨 設計規範
+
+### 色彩
+- **主色調**：Ocean 深藍漸層 (`#020d1a` → `#0a1628` → `#0d1f3c`)
+- **強調色**：Aqua 青色 (`#00c4d8`)
+- **成功**：Emerald 綠色
+- **警告**：Amber 琥珀色
+- **錯誤**：Red 紅色
+
+### 動畫
+- **頁面切換**：200ms ease-in-out
+- **按鈕點擊**：scale(0.95)
+- **通知彈出**：Spring animation (stiffness: 400, damping: 30)
+- **波浪進度**：Spring (stiffness: 60, damping: 20, mass: 0.8)
+
+### 字體
+- **主要**：Nunito（數字、標題）
+- **次要**：DM Sans（正文）
+
+---
+
+## 🔐 安全注意事項
+
+### 當前狀態（開發階段）
+⚠️ **RLS 完全禁用**  
+⚠️ **所有表對 `anon` 和 `authenticated` 角色開放**
+
+### 生產環境必須
+1. 重新啟用 RLS
+2. 設計簡化策略避免複雜子查詢
+3. 使用 Service Role Key 執行管理操作
+4. 啟用 Rate Limiting
+5. 配置 CORS 白名單
+
+---
+
+## 📞 支援資源
+
+### 文檔
+- `CLAUDE.md` - 完整技術文檔
+- `DEPLOY.md` - Vercel 部署指南
+- `REALTIME-SETUP.md` - Realtime 設定詳細說明
+- `TROUBLESHOOTING.md` - 常見問題解決
+- `FIXES-2026-04-20.md` - 最新修復報告
+- `SUMMARY-REALTIME-FIX.md` - Realtime 修復總結
+- `PATCH-PROFILE-NOTIFICATION.md` - 通知橫幅補丁代碼
+
+### 外部連結
+- Supabase Dashboard: https://supabase.com/dashboard/project/pzznpnochkenridvjzui
+- Vercel Dashboard: https://vercel.com/dashboard
+- GitHub Repo: （待補充）
+
+---
+
+## 📝 開發者筆記
+
+### 編碼偏好
+- ✅ 使用繁體中文註解和文檔
+- ✅ Console 日誌使用 emoji 標記（🔧 🔐 ✅ ❌ 💧 🔔 等）
+- ✅ 變數命名使用英文，註解使用中文
+- ✅ 優先使用函數式組件和 Hooks
+- ✅ 使用 Tailwind 原子類而非自定義 CSS
+
+### Git Commit 規範
+```
+feat: 新功能描述
+fix: 錯誤修復描述
+docs: 文檔更新
+refactor: 代碼重構
+style: 樣式調整
+test: 測試相關
+chore: 建置工具或輔助工具變動
+```
+
+### 除錯技巧
+1. 檢查 Supabase Logs（Dashboard → Logs）
+2. 查看 Realtime Inspector（supabase.getChannels()）
+3. 使用 React DevTools 檢查狀態
+4. Network 標籤查看 API 請求
+5. 雙瀏覽器並排測試即時功能
+
+---
+
+## ✨ 特別感謝
+
+- React Team - 卓越的 UI 框架
+- Supabase - 開源 Firebase 替代方案
+- Vercel - 零配置部署平台
+- Framer Motion - 流暢動畫庫
+
+---
+
+**專案狀態**：✅ 功能完整，待手動補丁和 Realtime 啟用  
+**下一步**：啟用 Supabase Realtime，添加通知橫幅代碼，推送部署測試  
+**維護者**：RealPapaya（使用者）+ AI Assistant
