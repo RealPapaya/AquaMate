@@ -8,6 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon.svg'],
+      manifestFilename: 'manifest.json',
       manifest: {
         name: '水伴 AquaMate',
         short_name: '水伴',
