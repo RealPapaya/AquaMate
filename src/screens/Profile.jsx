@@ -7,7 +7,7 @@ const AVATAR_OPTIONS = ['💧', '🌊', '🐳', '🦈', '🐬', '🐟', '⛵', '
 const GOAL_OPTIONS   = [1500, 2000, 2500, 3000]
 
 export default function ProfileScreen() {
-  const { profile, partner, myBadges, pairId, updateProfile, generateInviteLink, acceptInviteToken } = useStore()
+  const { profile, partner, myBadges, pairId, pairNotification, updateProfile, generateInviteLink, acceptInviteToken, unpair } = useStore()
 
   const [editMode,     setEditMode]     = useState(false)
   const [name,         setName]         = useState(profile?.display_name ?? '')
@@ -16,9 +16,10 @@ export default function ProfileScreen() {
   const [saving,       setSaving]       = useState(false)
   const [inviteUrl,    setInviteUrl]    = useState('')
   const [joinToken,    setJoinToken]    = useState('')
-  const [pairingState, setPairingState] = useState('idle')  // idle | generating | joining | success | error
+    const [pairingState, setPairingState] = useState('idle')  // idle | generating | joining | success | error
   const [pairMsg,      setPairMsg]      = useState('')
   const [copied,       setCopied]       = useState(false)
+  const [unpairConfirm, setUnpairConfirm] = useState(false)
 
   const unlockedTypes = new Set(myBadges.map(b => b.badge_type))
   const allTypes      = Object.keys(BADGE_DEFS)
@@ -48,7 +49,7 @@ export default function ProfileScreen() {
     setTimeout(() => setCopied(false), 2000)
   }, [inviteUrl])
 
-    const handleJoin = useCallback(async () => {
+      const handleJoin = useCallback(async () => {
     const token = joinToken.trim().split('token=').pop()
     if (!token) return
     setPairingState('joining')
@@ -67,6 +68,27 @@ export default function ProfileScreen() {
       setPairMsg(e.message ?? '配對失敗')
     }
   }, [joinToken, acceptInviteToken])
+
+  const handleUnpair = useCallback(async () => {
+    if (!unpairConfirm) {
+      setUnpairConfirm(true)
+      setTimeout(() => setUnpairConfirm(false), 3000)
+      return
+    }
+    const { error } = await unpair()
+    if (error) {
+      setPairingState('error')
+      setPairMsg('解除失敗')
+    } else {
+      setPairingState('success')
+      setPairMsg('已解除配對')
+      setUnpairConfirm(false)
+      setTimeout(() => {
+        setPairingState('idle')
+        setPairMsg('')
+      }, 2000)
+    }
+  }, [unpair, unpairConfirm])
 
   return (
     <div className="screen" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
@@ -166,20 +188,31 @@ export default function ProfileScreen() {
         <div className="glass px-4 py-4 space-y-3">
           <div className="text-sm font-bold text-white/60 uppercase tracking-wider">💑 配對設定</div>
 
-                    {pairId && partner ? (
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="flex items-center gap-3 px-3 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20"
-            >
-              <span style={{ fontSize: '28px' }}>{partner.avatar_emoji}</span>
-              <div>
-                <div className="font-bold text-emerald-300">{partner.display_name}</div>
-                <div className="text-xs text-white/40">已永久綁定 💑</div>
-              </div>
-              <span className="ml-auto text-emerald-400 font-extrabold text-xl">✓</span>
-            </motion.div>
+                              {pairId && partner ? (
+            <div className="space-y-3">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20"
+              >
+                <span style={{ fontSize: '28px' }}>{partner.avatar_emoji}</span>
+                <div className="flex-1">
+                  <div className="font-bold text-emerald-300">{partner.display_name}</div>
+                  <div className="text-xs text-white/40">已綁定</div>
+                </div>
+                <span className="text-emerald-400 font-extrabold text-xl">✓</span>
+              </motion.div>
+              <button
+                onClick={handleUnpair}
+                className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all
+                  ${unpairConfirm 
+                    ? 'bg-red-500/30 text-red-300 border border-red-400/50'
+                    : 'bg-white/5 text-white/40 border border-white/10 hover:border-red-400/30 hover:text-red-300'}`}
+              >
+                {unpairConfirm ? '再次點擊確認解除' : '🔓 解除配對'}
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {/* Generate link */}

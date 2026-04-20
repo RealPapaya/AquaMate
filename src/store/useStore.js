@@ -26,9 +26,12 @@ const useStore = create((set, get) => ({
   myIntakeToday:      0,
   partnerIntakeToday: 0,
 
-  // ── Nudge state ─────────────────────────────────────────
+    // ── Nudge state ─────────────────────────────────────────
   nudgeActive: false,
   nudgeCooldown: false,  // prevent spam
+
+  // ── Pair notification ───────────────────────────────────
+  pairNotification: null,  // { type: 'paired', partnerName: 'xxx' }
 
   // ── Badges ──────────────────────────────────────────────
   myBadges:      [],
@@ -64,10 +67,14 @@ const useStore = create((set, get) => ({
       set({ user: session.user })
     }
 
-        await get().loadProfile()
+            await get().loadProfile()
     const partner = await get().loadPartner()
     await get().loadTodayIntake()
     await get().loadBadges()
+
+        // Always start realtime (to receive pair notifications even when not paired)
+    const cleanup = get().startRealtimeSubscription()
+    set({ realtimeCleanup: cleanup })
 
     console.log('✅ App initialized')
     set({ isLoading: false })
@@ -124,7 +131,7 @@ const useStore = create((set, get) => ({
       .eq('id', partnerId)
       .single()
 
-        set({ partner })
+            set({ partner })
 
     // Load partner's today intake
     const { data: logs } = await supabase
@@ -135,11 +142,6 @@ const useStore = create((set, get) => ({
 
     const total = logs?.reduce((s, l) => s + l.amount_ml, 0) ?? 0
     set({ partnerIntakeToday: total })
-
-    // Start realtime subscription
-    console.log('🔗 Starting realtime subscription for partner:', partnerId)
-    const cleanup = get().subscribeRealtime(partnerId)
-    set({ realtimeCleanup: cleanup })
 
     return partner
   },
@@ -265,10 +267,39 @@ const useStore = create((set, get) => ({
     })
   },
 
-  triggerNudge: () => {
+    triggerNudge: () => {
     set({ nudgeActive: true })
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300])
     setTimeout(() => set({ nudgeActive: false }), 3500)
+  },
+
+  triggerPairNotification: (partnerName) => {
+    set({ pairNotification: { type: 'paired', partnerName } })
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200])
+    setTimeout(() => set({ pairNotification: null }), 4000)
+  },
+
+  unpair: async () => {
+    const { pairId, realtimeCleanup } = get()
+    if (!pairId) return { error: new Error('未配對') }
+
+    // Cleanup realtime first
+    if (realtimeCleanup) {
+      realtimeCleanup()
+      set({ realtimeCleanup: null })
+    }
+
+    // Delete pair from database
+    const { error } = await supabase
+      .from('pairs')
+      .delete()
+      .eq('id', pairId)
+
+    if (!error) {
+      set({ partner: null, pairId: null, partnerIntakeToday: 0 })
+    }
+
+    return { error }
   },
 
   // ── History for Stats ───────────────────────────────────
@@ -293,24 +324,37 @@ const useStore = create((set, get) => ({
     return createInviteLink(user.id)
   },
 
-    acceptInviteToken: async (token) => {
+      acceptInviteToken: async (token) => {
     const { user } = get()
     if (!user) throw new Error('未登入')
     const pair = await acceptInvite(token, user.id)
-    // Immediately reload partner data and start realtime sync
+    // Immediately reload partner data
     await get().loadPartner()
-    // Also reload badges in case partner-related badges can now be earned
+    // Restart realtime to include partner events
+    const { realtimeCleanup } = get()
+    if (realtimeCleanup) realtimeCleanup()
+    const cleanup = get().startRealtimeSubscription()
+    set({ realtimeCleanup: cleanup })
+    // Also reload badges
     await get().loadBadges()
     return pair
   },
 
-    // ── Realtime subscriptions ──────────────────────────────
-  subscribeRealtime: (partnerId) => {
+        // ── Realtime subscriptions ──────────────────────────────
+  startRealtimeSubscription: () => {
     const myId = get().user?.id
+    if (!myId) return () => {}
 
-    const channel = supabase.channel(`aquamate-${myId}`)
-      // Partner adds water
-      .on('postgres_changes', {
+    const partnerId = get().partner?.id
+    console.log('🔗 Starting realtime, partner:', partnerId || 'none')
+
+    let channel = supabase.channel(`aquamate-${myId}`)
+
+    // If we have a partner, listen to their events
+    if (partnerId) {
+      channel
+        // Partner adds water
+        .on('postgres_changes', {
         event:  'INSERT',
         schema: 'public',
         table:  'intake_logs',
@@ -339,15 +383,64 @@ const useStore = create((set, get) => ({
         console.log('🔔 Received nudge:', payload)
         get().triggerNudge()
       })
-      // Partner profile changes
+        // Partner profile changes
+        .on('postgres_changes', {
+          event:  'UPDATE',
+          schema: 'public',
+          table:  'users',
+          filter: `id=eq.${partnerId}`,
+        }, ({ new: updated }) => {
+          console.log('👤 Partner profile updated:', updated)
+          set({ partner: updated })
+        })
+    }
+
+    // Always listen for pairing and nudges (even without partner)
+    channel
+      // Incoming nudge
       .on('postgres_changes', {
-        event:  'UPDATE',
+        event:  'INSERT',
         schema: 'public',
-        table:  'users',
-        filter: `id=eq.${partnerId}`,
-      }, ({ new: updated }) => {
-        console.log('👤 Partner profile updated:', updated)
-        set({ partner: updated })
+        table:  'nudges',
+        filter: `to_user_id=eq.${myId}`,
+      }, (payload) => {
+        console.log('🔔 Received nudge:', payload)
+        get().triggerNudge()
+      })
+      // Someone paired with me (I am user_a_id, they are user_b_id)
+      .on('postgres_changes', {
+        event:  'INSERT',
+        schema: 'public',
+        table:  'pairs',
+        filter: `user_a_id=eq.${myId}`,
+      }, async ({ new: pair }) => {
+        console.log('💑 Someone paired with me!', pair)
+        // Reload partner data
+        await get().loadPartner()
+        // Show notification
+        const partner = get().partner
+        if (partner) {
+          get().triggerPairNotification(partner.display_name)
+        }
+      })
+      // Pair was deleted (unpaired)
+      .on('postgres_changes', {
+        event:  'DELETE',
+        schema: 'public',
+        table:  'pairs',
+        filter: `user_a_id=eq.${myId}`,
+      }, () => {
+        console.log('💔 Pair was deleted')
+        set({ partner: null, pairId: null, partnerIntakeToday: 0 })
+      })
+      .on('postgres_changes', {
+        event:  'DELETE',
+        schema: 'public',
+        table:  'pairs',
+        filter: `user_b_id=eq.${myId}`,
+      }, () => {
+        console.log('💔 Pair was deleted')
+        set({ partner: null, pairId: null, partnerIntakeToday: 0 })
       })
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
