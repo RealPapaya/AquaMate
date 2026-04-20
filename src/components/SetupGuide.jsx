@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase'
 export default function SetupGuide() {
   const [checks, setChecks] = useState({
     env: false,
-    auth: false,
     tables: false,
     realtime: false,
   })
@@ -25,13 +24,7 @@ export default function SetupGuide() {
     const hasKey = import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY.length > 20
     results.env = hasUrl && hasKey
 
-    // Check 2: Anonymous auth
-    try {
-      const { error } = await supabase.auth.signInAnonymously()
-      results.auth = !error || !error.message.includes('disabled')
-    } catch {
-      results.auth = false
-    }
+    // Skip auth check - handled by Login screen
 
     // Check 3: Tables exist
     try {
@@ -62,14 +55,6 @@ export default function SetupGuide() {
       passed: checks.env,
       action: '檢查 .env.local 檔案',
       link: null,
-    },
-    {
-      id: 'auth',
-      title: 'Anonymous 認證',
-      description: '啟用匿名登入',
-      passed: checks.auth,
-      action: '前往啟用',
-      link: `https://supabase.com/dashboard/project/${projectId}/auth/providers`,
     },
     {
       id: 'tables',
@@ -165,14 +150,11 @@ export default function SetupGuide() {
               <div className="glass-light p-4 rounded-xl mb-4">
                 <div className="text-xs text-white/60 space-y-2">
                   <div className="font-bold text-white/80">📝 快速步驟：</div>
-                  {!checks.auth && (
-                    <div>1. 啟用 Anonymous 認證（最重要！）</div>
-                  )}
                   {!checks.tables && (
-                    <div>2. 在 SQL Editor 執行 src/SCHEMA.sql</div>
+                    <div>1. 在 SQL Editor 執行 src/SCHEMA.sql</div>
                   )}
                   {!checks.realtime && (
-                    <div>3. 啟用 Realtime（建議）</div>
+                    <div>2. 啟用 Realtime Replication（建議）</div>
                   )}
                   <div className="pt-2 text-white/40">
                     完成後點擊下方重新檢查

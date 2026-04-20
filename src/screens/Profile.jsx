@@ -26,10 +26,15 @@ export default function ProfileScreen() {
   const unlockedTypes = new Set(myBadges.map(b => b.badge_type))
   const allTypes      = Object.keys(BADGE_DEFS)
 
-  // Get user login info
+    // Get user login info
   const userEmail = user?.email
   const loginProvider = user?.app_metadata?.provider || 'email'
   const isGoogleLogin = loginProvider === 'google'
+
+  // Debug logging
+  console.log('👤 Profile - user object:', user)
+  console.log('📧 Profile - userEmail:', userEmail)
+  console.log('🔑 Profile - loginProvider:', loginProvider)
 
   const handleSave = useCallback(async () => {
     setSaving(true)

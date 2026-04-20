@@ -1,10 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { motion, useSpring } from 'framer-motion'
+
+// Generate unique ID for each instance
+let instanceCounter = 0
 
 function SimpleWave({ current = 0, goal = 2000, size = 220 }) {
   const [offset, setOffset] = useState(0)
   const pct = Math.min(current / Math.max(goal, 1), 1)
   const radius = size / 2 - 4
+  
+  // Generate unique IDs for this instance
+  const uniqueId = useMemo(() => {
+    instanceCounter += 1
+    return instanceCounter
+  }, [])
+  
+  const clipId = `wave-clip-simple-${uniqueId}`
+  const gradientId = `wave-gradient-simple-${uniqueId}`
   
   // Smooth spring animation for fill percentage
   const springPct = useSpring(pct, {
@@ -65,10 +77,10 @@ function SimpleWave({ current = 0, goal = 2000, size = 220 }) {
     <div className="relative flex flex-col items-center">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <defs>
-          <clipPath id="wave-clip-simple">
+          <clipPath id={clipId}>
             <circle cx={size / 2} cy={size / 2} r={radius} />
           </clipPath>
-          <linearGradient id="wave-gradient-simple" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#00e5f0" />
             <stop offset="100%" stopColor="#0099b8" />
           </linearGradient>
@@ -86,7 +98,7 @@ function SimpleWave({ current = 0, goal = 2000, size = 220 }) {
         />
         
         {/* Waves */}
-        <g clipPath="url(#wave-clip-simple)">
+        <g clipPath={`url(#${clipId})`}>
           {/* Secondary wave (back layer) */}
           <path 
             d={wavePath2}
@@ -95,7 +107,7 @@ function SimpleWave({ current = 0, goal = 2000, size = 220 }) {
           {/* Primary wave (front layer) */}
           <path 
             d={wavePath1}
-            fill="url(#wave-gradient-simple)"
+            fill={`url(#${gradientId})`}
             opacity="0.9"
           />
         </g>

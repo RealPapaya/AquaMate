@@ -45,7 +45,7 @@ const useStore = create((set, get) => ({
 
   // ── Actions ─────────────────────────────────────────────
 
-                init: async () => {
+                        init: async () => {
     set({ isLoading: true })
     console.log('🔧 Initializing app...')
 
@@ -58,17 +58,38 @@ const useStore = create((set, get) => ({
       return
     }
 
-    console.log('✅ Found session:', session.user.email || session.user.id)
+            console.log('✅ Found session:', session.user.email || session.user.id)
+    console.log('📧 User object:', JSON.stringify(session.user, null, 2))
+    console.log('📧 User email:', session.user.email)
+    console.log('📧 User metadata:', session.user.user_metadata)
+    console.log('📧 App metadata:', session.user.app_metadata)
+    
+    // Reject anonymous sessions (should not happen after disabling in Supabase)
+    if (session.user.is_anonymous) {
+      console.error('❌ Anonymous session detected! Please disable anonymous sign-ins in Supabase Dashboard.')
+      await supabase.auth.signOut()
+      set({ isLoading: false, user: null })
+      return
+    }
+    
     set({ user: session.user })
 
-    // Setup auth state change listener for future changes
+        // Setup auth state change listener for future changes
     supabase.auth.onAuthStateChange((_event, session) => {
       console.log('🔐 Auth state changed:', _event, session?.user?.email)
-      if (session?.user) {
-        set({ user: session.user })
-      } else {
+      
+      // Only update user state if we have a valid session with email
+      // or if explicitly signing out
+      if (_event === 'SIGNED_OUT') {
         set({ user: null, profile: null, partner: null })
+      } else if (_event === 'INITIAL_SESSION' && session?.user) {
+        // Only update on initial session, not on subsequent SIGNED_IN events
+        // which might have incomplete user data
+        console.log('🔄 Updating user from INITIAL_SESSION')
+        set({ user: session.user })
       }
+      // Ignore other events (SIGNED_IN, TOKEN_REFRESHED) to prevent overwriting
+      // complete user data with incomplete data
     })
 
             await get().loadProfile()

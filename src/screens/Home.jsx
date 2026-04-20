@@ -106,7 +106,7 @@ export default function HomeScreen() {
 
         {/* ── Main wave circle ───────────────────────────── */}
         <motion.div
-          className="flex justify-center py-2"
+          className="flex flex-col items-center justify-center py-2"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 150, damping: 20 }}
@@ -116,7 +116,6 @@ export default function HomeScreen() {
             goal={myGoal}
             size={220}
           />
-          <div className="text-xs text-white/60 mt-2 text-center">{myName}</div>
         </motion.div>
 
         {/* ── Quick stats row ───────────────────────────── */}
@@ -178,12 +177,10 @@ export default function HomeScreen() {
             </div>
 
             <div className="flex items-center gap-4">
-              <WaveProgress
+              <SimpleWave
                 current={partnerIntakeToday}
                 goal={partnerGoal}
                 size={90}
-                mini={true}
-                name={partnerName}
               />
 
               <div className="flex-1 space-y-2">

@@ -8,7 +8,7 @@ import Home      from './screens/Home'
 import Stats     from './screens/Stats'
 import Profile   from './screens/Profile'
 import Login     from './screens/Login'
-import { acceptInvite } from './lib/supabase'
+import { acceptInvite, supabase } from './lib/supabase'
 
 // ── Screens map ──────────────────────────────────────────────
 const SCREENS = { home: Home, stats: Stats, profile: Profile }
@@ -61,6 +61,12 @@ const variants = {
 export default function App() {
   const { init, isLoading, user } = useStore()
   const [tab, setTab] = useState('home')
+
+  // Debug: expose to window for console testing
+  useEffect(() => {
+    window.useStore = useStore
+    window.supabase = supabase
+  }, [])
 
   useEffect(() => { init() }, [init])
   useInviteFromUrl()

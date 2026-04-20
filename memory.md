@@ -20,6 +20,7 @@
 - ✅ Email Magic Link 登入（無需密碼）
 - ✅ Google OAuth 登入
 - ✅ Session 持久化（重整不登出）
+- ❌ 匿名登入（已移除）
 - ✅ 雙人配對系統（邀請連結）
 - ✅ 即時同步水量記錄
 - ✅ Nudge 提醒功能（震動 + 通知）
@@ -40,27 +41,44 @@
 
 ## 🔧 最近修改記錄
 
-### 2026-04-20 - Session 恢復修復 + 帳號資訊顯示優化
+### 2026-04-20 - 匿名認證移除 + Session 恢復修復
 
 #### 問題
-1. 網頁重整後會登出，但帳號資訊顯示「未設定」
-2. 雲端同步狀態仍顯示「已啟用」，但 user.email 為 null
-3. Session 恢復時機不正確
+1. 網頁重整後變成匿名帳號，帳號資訊顯示「未設定」
+2. localStorage 殘留舊的匿名 session
+3. Supabase Anonymous sign-ins 仍然啟用，會自動創建匿名帳號
+4. `onAuthStateChange` 的 SIGNED_IN 事件覆蓋完整 user 資料
 
 #### 解決方案
-1. **src/store/useStore.js - init()**
-   - 添加 `onAuthStateChange` 監聽器
-   - 確保 auth 狀態變更時正確更新 user 狀態
-   - 保持 session 持久化
+1. **Supabase Dashboard 設定**
+   - 關閉 Authentication → Providers → Anonymous sign-ins
+   - 清理資料庫中的匿名用戶
 
-2. **src/screens/Profile.jsx - 帳號資訊區塊**
+2. **src/store/useStore.js - init()**
+   - 添加 `onAuthStateChange` 監聽器
+   - 只在 `INITIAL_SESSION` 和 `SIGNED_OUT` 更新 user
+   - 忽略 `SIGNED_IN` 避免覆蓋完整資料
+   - 檢查 `is_anonymous`，自動登出匿名帳號
+
+3. **src/screens/Profile.jsx - 帳號資訊區塊**
    - 添加 `userEmail` 檢查
    - 無 email 時顯示「正在載入...」狀態
    - 有 email 時才顯示雲端同步狀態
 
+4. **src/components/SetupGuide.jsx**
+   - 移除 Anonymous 認證檢查
+   - 保留環境變數、Schema、Realtime 檢查
+
 #### 修改檔案
-- `src/store/useStore.js` - 新增 onAuthStateChange 監聽
+- `src/store/useStore.js` - 新增 onAuthStateChange 監聽 + 匿名檢查
 - `src/screens/Profile.jsx` - 條件渲染帳號資訊
+- `src/components/SetupGuide.jsx` - 移除 Anonymous 認證步驟
+- `src/App.jsx` - 暫時暴露 useStore/supabase 到 window (除錯)
+
+#### 重要變更
+⚠️ **不再支持匿名登入！**
+- 用戶必須使用 Email Magic Link 或 Google OAuth 登入
+- 舊的匿名帳號無法遷移，需重新註冊
 
 ---
 
