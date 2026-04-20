@@ -123,11 +123,30 @@ export default function StatsScreen() {
     })
   }, [historyData, period, todayHourlyData])
 
-  // Summary stats
+    // Summary stats
   const stats = useMemo(() => {
-    if (!chartData.length) return { myAvg: 0, partnerAvg: 0, myWins: 0, partnerWins: 0, streak: 0 }
-    const myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0) / chartData.length)
-    const partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0) / chartData.length)
+    if (!chartData.length) return { myAvg: 0, partnerAvg: 0, myWins: 0, partnerWins: 0, streak: 0, periodLabel: '每日' }
+    
+    // Calculate average (skip if period is 'day')
+    let myAvg = 0
+    let partnerAvg = 0
+    let periodLabel = '每日'
+    
+    if (period === 'day') {
+      // For hourly data, just show total
+      myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0))
+      partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0))
+      periodLabel = '今日'
+    } else if (period === 'week') {
+      myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0) / chartData.length)
+      partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0) / chartData.length)
+      periodLabel = '週平均'
+    } else if (period === 'month') {
+      myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0) / chartData.length)
+      partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0) / chartData.length)
+      periodLabel = '月平均'
+    }
+    
     const myWins = chartData.filter(d => d.my >= myGoal && d.my > d.partner).length
     const partnerWins = chartData.filter(d => d.partner >= myGoal && d.partner > d.my).length
 
@@ -138,8 +157,8 @@ export default function StatsScreen() {
       else break
     }
 
-    return { myAvg, partnerAvg, myWins, partnerWins, streak }
-  }, [chartData, historyData, myGoal])
+    return { myAvg, partnerAvg, myWins, partnerWins, streak, periodLabel }
+  }, [chartData, historyData, myGoal, period])
 
   return (
     <div className="screen" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
@@ -177,9 +196,9 @@ export default function StatsScreen() {
 
         {/* ── Summary stats ────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: '我的平均',    value: `${stats.myAvg}ml`,      sub: '每日',     color: 'text-aqua-300' },
-            { label: '隊友平均',    value: `${stats.partnerAvg}ml`, sub: '每日',     color: 'text-sky-300'  },
+                    {[
+            { label: '我的平均',    value: `${stats.myAvg}ml`,      sub: stats.periodLabel, color: 'text-aqua-300' },
+            { label: '隊友平均',    value: `${stats.partnerAvg}ml`, sub: stats.periodLabel, color: 'text-sky-300'  },
             { label: '我先達標',    value: `${stats.myWins}天`,     sub: '期間內',   color: 'text-emerald-300' },
             { label: '連續達標',    value: `${stats.streak}天`,     sub: '目前連續', color: 'text-amber-300'   },
           ].map(s => (

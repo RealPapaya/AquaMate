@@ -2,12 +2,13 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BadgeCard, { BadgeLocked } from '../components/BadgeCard'
 import useStore, { BADGE_DEFS } from '../store/useStore'
+import { supabase } from '../lib/supabase'
 
 const AVATAR_OPTIONS = ['💧', '🌊', '🐳', '🦈', '🐬', '🐟', '⛵', '🏖️', '🌿', '💦']
 const GOAL_OPTIONS   = [1500, 2000, 2500, 3000]
 
 export default function ProfileScreen() {
-  const { profile, partner, myBadges, pairId, pairNotification, updateProfile, generateInviteLink, acceptInviteToken, unpair } = useStore()
+  const { profile, partner, myBadges, pairId, pairNotification, user, updateProfile, generateInviteLink, acceptInviteToken, unpair } = useStore()
 
   const [editMode,     setEditMode]     = useState(false)
   const [name,         setName]         = useState(profile?.display_name ?? '')
@@ -20,9 +21,15 @@ export default function ProfileScreen() {
   const [pairMsg,      setPairMsg]      = useState('')
   const [copied,       setCopied]       = useState(false)
   const [unpairConfirm, setUnpairConfirm] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const unlockedTypes = new Set(myBadges.map(b => b.badge_type))
   const allTypes      = Object.keys(BADGE_DEFS)
+
+  // Get user login info
+  const userEmail = user?.email
+  const loginProvider = user?.app_metadata?.provider || 'email'
+  const isGoogleLogin = loginProvider === 'google'
 
   const handleSave = useCallback(async () => {
     setSaving(true)
@@ -69,7 +76,7 @@ export default function ProfileScreen() {
     }
   }, [joinToken, acceptInviteToken])
 
-  const handleUnpair = useCallback(async () => {
+    const handleUnpair = useCallback(async () => {
     if (!unpairConfirm) {
       setUnpairConfirm(true)
       setTimeout(() => setUnpairConfirm(false), 3000)
@@ -89,6 +96,18 @@ export default function ProfileScreen() {
       }, 2000)
     }
   }, [unpair, unpairConfirm])
+
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true)
+    try {
+      await supabase.auth.signOut()
+      // Reload page to show login screen
+      window.location.reload()
+    } catch (error) {
+      console.error('登出失敗:', error)
+      setLoggingOut(false)
+    }
+  }, [])
 
     return (
     <div className="screen relative" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
@@ -315,6 +334,55 @@ export default function ProfileScreen() {
               </AnimatePresence>
             </div>
           )}
+        </div>
+
+{/* ── Account Info ─────────────────────────────── */}
+        <div className="glass px-4 py-4 space-y-3">
+          <div className="text-sm font-bold text-white/60 uppercase tracking-wider">🔐 帳號資訊</div>
+          
+          {/* Login Info */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
+              <span className="text-lg">
+                {isGoogleLogin ? '🔵' : '📧'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-white/40 font-semibold">
+                  {isGoogleLogin ? 'Google 帳號' : 'Email 帳號'}
+                </div>
+                <div className="text-sm text-white/80 font-medium truncate">
+                  {userEmail || '未設定'}
+                </div>
+              </div>
+              <div className="stat-chip text-[10px]">已登入</div>
+            </div>
+
+            {/* Cloud Sync Info */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+              <span className="text-emerald-400 text-sm">☁️</span>
+              <div className="flex-1">
+                <div className="text-xs text-emerald-300 font-semibold">
+                  雲端同步已啟用
+                </div>
+                <div className="text-[10px] text-emerald-400/60">
+                  資料已備份到 Supabase 雲端
+                </div>
+              </div>
+              <span className="text-emerald-400 text-xs">✓</span>
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full py-2.5 rounded-xl text-xs font-bold transition-all
+                       bg-white/5 text-white/60 border border-white/10
+                       hover:border-red-400/30 hover:text-red-300 hover:bg-red-500/10
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loggingOut ? '登出中...' : '🚪 登出帳號'}
+          </button>
         </div>
 
         {/* ── Badges ───────────────────────────────────────── */}

@@ -333,10 +333,17 @@ const useStore = create((set, get) => ({
     return pair
   },
 
-        // ── Realtime subscriptions ──────────────────────────────
+          // ── Realtime subscriptions ──────────────────────────────
   startRealtimeSubscription: () => {
     const myId = get().user?.id
     if (!myId) return () => {}
+
+    // Cleanup existing subscription first
+    const { realtimeCleanup } = get()
+    if (realtimeCleanup) {
+      console.log('🧹 Cleaning up old realtime subscription')
+      realtimeCleanup()
+    }
 
     const partnerId = get().partner?.id
     console.log('🔗 Starting realtime, partner:', partnerId || 'none')
@@ -365,17 +372,7 @@ const useStore = create((set, get) => ({
       }, ({ old: log }) => {
         console.log('❌ Partner removed water:', log.amount_ml)
         set(s => ({ partnerIntakeToday: Math.max(0, s.partnerIntakeToday - (log.amount_ml ?? 0)) }))
-      })
-      // Incoming nudge
-      .on('postgres_changes', {
-        event:  'INSERT',
-        schema: 'public',
-        table:  'nudges',
-        filter: `to_user_id=eq.${myId}`,
-      }, (payload) => {
-        console.log('🔔 Received nudge:', payload)
-        get().triggerNudge()
-      })
+            })
         // Partner profile changes
         .on('postgres_changes', {
           event:  'UPDATE',
