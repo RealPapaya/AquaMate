@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
+
+/* ── Root & Body ────────────────────────────────────────── */
+:root {
+  --color-ocean-950: #020d1a;
+  --color-ocean-900: #0a1628;
+  --color-ocean-800: #0f2340;
+  --color-aqua:      #00c4d8;
+  --color-aqua-glow: rgba(0, 196, 216, 0.4);
+  --safe-top:        env(safe-area-inset-top, 0px);
+  --safe-bottom:     env(safe-area-inset-bottom, 0px);
+}
+
+html, body, #root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background-color: var(--color-ocean-950);
+  color: #e2f4f7;
+  font-family: 'Nunito', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* ── Custom Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,196,216,0.3); border-radius: 2px; }
+
+/* ── Glass Card ─────────────────────────────────────────── */
+@layer components {
+  .glass {
+    @apply bg-ocean-800/40 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+
+  .glass-light {
+    @apply bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl;
+  }
+
+  .btn-primary {
+    @apply bg-aqua-300/20 hover:bg-aqua-300/30 active:scale-95
+           border border-aqua-300/40 text-aqua-200
+           font-semibold rounded-xl px-5 py-3 transition-all duration-150
+           select-none;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-white/5 active:scale-95
+           text-white/60 hover:text-white/90
+           font-medium rounded-xl px-4 py-2.5 transition-all duration-150
+           select-none;
+  }
+
+  .screen {
+    @apply flex flex-col h-full overflow-hidden;
+    padding-top: calc(var(--safe-top) + 0px);
+  }
+
+  .scroll-area {
+    @apply flex-1 overflow-y-auto;
+    padding-bottom: calc(var(--safe-bottom) + 80px);
+  }
+
+  .stat-chip {
+    @apply glass-light px-3 py-1.5 rounded-full text-xs font-semibold
+           text-aqua-200 border-aqua-400/20;
+  }
+}
+
+/* ── Slider Styling ─────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #00e5f0;
+  box-shadow: 0 0 12px rgba(0,229,240,0.7);
+  margin-top: -9px;
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+  cursor: grabbing;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #00e5f0;
+  box-shadow: 0 0 12px rgba(0,229,240,0.7);
+  border: none;
+  cursor: grab;
+}
+
+/* ── Nudge Flash Overlay ────────────────────────────────── */
+.nudge-overlay {
+  animation: nudgeFlash 0.4s ease-in-out 4;
+}
+
+@keyframes nudgeFlash {
+  0%, 100% { background-color: transparent; }
+  50%       { background-color: rgba(0, 229, 240, 0.18); }
+}
+
+/* ── Tab Active Indicator ───────────────────────────────── */
+.tab-indicator {
+  transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* ── Wave path animation offset ─────────────────────────── */
+.wave-path {
+  will-change: transform;
+}
