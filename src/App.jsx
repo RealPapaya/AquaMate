@@ -7,6 +7,7 @@ import SetupGuide from './components/SetupGuide'
 import Home      from './screens/Home'
 import Stats     from './screens/Stats'
 import Profile   from './screens/Profile'
+import Login     from './screens/Login'
 import { acceptInvite } from './lib/supabase'
 
 // ── Screens map ──────────────────────────────────────────────
@@ -58,13 +59,14 @@ const variants = {
 }
 
 export default function App() {
-  const { init, isLoading } = useStore()
+  const { init, isLoading, user } = useStore()
   const [tab, setTab] = useState('home')
 
   useEffect(() => { init() }, [init])
   useInviteFromUrl()
 
   if (isLoading) return <Splash />
+  if (!user) return <Login />
 
   const Screen = SCREENS[tab]
 

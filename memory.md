@@ -17,7 +17,9 @@
 ## 🎯 核心功能
 
 ### 已實現功能
-- ✅ 匿名登入（無需註冊）
+- ✅ Email Magic Link 登入（無需密碼）
+- ✅ Google OAuth 登入
+- ✅ Session 持久化（重整不登出）
 - ✅ 雙人配對系統（邀請連結）
 - ✅ 即時同步水量記錄
 - ✅ Nudge 提醒功能（震動 + 通知）
@@ -31,10 +33,44 @@
 - ⏳ Streak 連續達標徽章解鎖邏輯
 - ⏳ RLS 安全策略重新啟用
 - ⏳ 代碼分割優化（減少包體積）
+- ⚠️ 匿名用戶遷移功能（綁定 Email）
 
 ---
 
 ## 🔧 最近修改記錄
+
+### 2026-04-20 - 持久化登入系統
+
+#### 問題
+匿名登入每次重整頁面都會產生新帳號，導致配對和記錄遺失。
+
+#### 解決方案
+**檔案修改**：
+- `src/screens/Login.jsx` （新創）
+  - Email Magic Link 登入表單
+  - Google OAuth 登入按鈕
+  - 美觀的登入界面設計
+
+- `src/App.jsx`
+  - 整合 Login 組件
+  - 未登入時顯示登入畫面
+
+- `src/store/useStore.js`
+  - 移除匿名登入邏輯
+  - 改為檢查 session，沒有則返回 null
+
+**Supabase 設定**：
+- ⚠️ 需啟用 Email provider
+- ⚠️ 需設定 Google OAuth （見 AUTH-SETUP.md）
+- ⚠️ 需設定 Site URL 和 Redirect URLs
+
+**優點**：
+- ✅ 重整頁面不會登出
+- ✅ 資料持久化
+- ✅ 跨裝置同步
+- ✅ 無需密碼（Magic Link）
+
+---
 
 ### 2026-04-20 - 配對即時通知與解除配對
 

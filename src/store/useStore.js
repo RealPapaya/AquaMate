@@ -45,27 +45,20 @@ const useStore = create((set, get) => ({
 
   // ── Actions ─────────────────────────────────────────────
 
-    init: async () => {
+        init: async () => {
     set({ isLoading: true })
     console.log('🔧 Initializing app...')
 
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!session) {
-      // Auto sign-in anonymously
-      console.log('🔐 No session, signing in anonymously...')
-      const { data, error } = await supabase.auth.signInAnonymously()
-      if (error) { 
-        console.error('❌ Failed to sign in:', error)
-        set({ isLoading: false })
-        return 
-      }
-      console.log('✅ Signed in as:', data.user.id)
-      set({ user: data.user })
-    } else {
-      console.log('✅ Found existing session:', session.user.id)
-      set({ user: session.user })
+      console.log('🔐 No session found, user needs to login')
+      set({ isLoading: false, user: null })
+      return
     }
+
+    console.log('✅ Found session:', session.user.email || session.user.id)
+    set({ user: session.user })
 
             await get().loadProfile()
     const partner = await get().loadPartner()
