@@ -48,7 +48,7 @@ export default function ProfileScreen() {
     setTimeout(() => setCopied(false), 2000)
   }, [inviteUrl])
 
-  const handleJoin = useCallback(async () => {
+    const handleJoin = useCallback(async () => {
     const token = joinToken.trim().split('token=').pop()
     if (!token) return
     setPairingState('joining')
@@ -56,6 +56,12 @@ export default function ProfileScreen() {
       await acceptInviteToken(token)
       setPairingState('success')
       setPairMsg('配對成功！🎉')
+      setJoinToken('')
+      // Auto-hide success message after 2 seconds
+      setTimeout(() => {
+        setPairingState('idle')
+        setPairMsg('')
+      }, 2000)
     } catch (e) {
       setPairingState('error')
       setPairMsg(e.message ?? '配對失敗')
@@ -160,15 +166,20 @@ export default function ProfileScreen() {
         <div className="glass px-4 py-4 space-y-3">
           <div className="text-sm font-bold text-white/60 uppercase tracking-wider">💑 配對設定</div>
 
-          {pairId && partner ? (
-            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+                    {pairId && partner ? (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="flex items-center gap-3 px-3 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20"
+            >
               <span style={{ fontSize: '28px' }}>{partner.avatar_emoji}</span>
               <div>
                 <div className="font-bold text-emerald-300">{partner.display_name}</div>
-                <div className="text-xs text-white/40">已永久綁定</div>
+                <div className="text-xs text-white/40">已永久綁定 💑</div>
               </div>
-              <span className="ml-auto text-emerald-400 font-extrabold">✓</span>
-            </div>
+              <span className="ml-auto text-emerald-400 font-extrabold text-xl">✓</span>
+            </motion.div>
           ) : (
             <div className="space-y-3">
               {/* Generate link */}

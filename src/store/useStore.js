@@ -64,8 +64,8 @@ const useStore = create((set, get) => ({
       set({ user: session.user })
     }
 
-    await get().loadProfile()
-    await get().loadPartner()
+        await get().loadProfile()
+    const partner = await get().loadPartner()
     await get().loadTodayIntake()
     await get().loadBadges()
 
@@ -124,7 +124,7 @@ const useStore = create((set, get) => ({
       .eq('id', partnerId)
       .single()
 
-    set({ partner })
+        set({ partner })
 
     // Load partner's today intake
     const { data: logs } = await supabase
@@ -137,6 +137,7 @@ const useStore = create((set, get) => ({
     set({ partnerIntakeToday: total })
 
     // Start realtime subscription
+    console.log('🔗 Starting realtime subscription for partner:', partnerId)
     const cleanup = get().subscribeRealtime(partnerId)
     set({ realtimeCleanup: cleanup })
 
@@ -292,15 +293,18 @@ const useStore = create((set, get) => ({
     return createInviteLink(user.id)
   },
 
-  acceptInviteToken: async (token) => {
+    acceptInviteToken: async (token) => {
     const { user } = get()
     if (!user) throw new Error('未登入')
     const pair = await acceptInvite(token, user.id)
+    // Immediately reload partner data and start realtime sync
     await get().loadPartner()
+    // Also reload badges in case partner-related badges can now be earned
+    await get().loadBadges()
     return pair
   },
 
-  // ── Realtime subscriptions ──────────────────────────────
+    // ── Realtime subscriptions ──────────────────────────────
   subscribeRealtime: (partnerId) => {
     const myId = get().user?.id
 
@@ -312,6 +316,7 @@ const useStore = create((set, get) => ({
         table:  'intake_logs',
         filter: `user_id=eq.${partnerId}`,
       }, ({ new: log }) => {
+        console.log('💧 Partner added water:', log.amount_ml)
         set(s => ({ partnerIntakeToday: s.partnerIntakeToday + log.amount_ml }))
       })
       // Partner deletes water
@@ -321,6 +326,7 @@ const useStore = create((set, get) => ({
         table:  'intake_logs',
         filter: `user_id=eq.${partnerId}`,
       }, ({ old: log }) => {
+        console.log('❌ Partner removed water:', log.amount_ml)
         set(s => ({ partnerIntakeToday: Math.max(0, s.partnerIntakeToday - (log.amount_ml ?? 0)) }))
       })
       // Incoming nudge
@@ -329,7 +335,8 @@ const useStore = create((set, get) => ({
         schema: 'public',
         table:  'nudges',
         filter: `to_user_id=eq.${myId}`,
-      }, () => {
+      }, (payload) => {
+        console.log('🔔 Received nudge:', payload)
         get().triggerNudge()
       })
       // Partner profile changes
@@ -339,11 +346,21 @@ const useStore = create((set, get) => ({
         table:  'users',
         filter: `id=eq.${partnerId}`,
       }, ({ new: updated }) => {
+        console.log('👤 Partner profile updated:', updated)
         set({ partner: updated })
       })
-      .subscribe()
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtime connected')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Realtime error:', err)
+        }
+      })
 
-    return () => supabase.removeChannel(channel)
+    return () => {
+      console.log('🔌 Disconnecting realtime')
+      supabase.removeChannel(channel)
+    }
   },
 
   teardown: () => {

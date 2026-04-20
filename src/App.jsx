@@ -83,21 +83,22 @@ export default function App() {
                         bg-sky-500/6 blur-2xl" />
       </div>
 
-      {/* Screen with animated transitions */}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={tab}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
-          className="absolute inset-0"
-          style={{ paddingBottom: '72px' }}
-        >
-          <Screen />
-        </motion.div>
-      </AnimatePresence>
+            {/* Screen with animated transitions */}
+      <div className="absolute inset-0" style={{ paddingBottom: '72px' }}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={tab}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="h-full w-full"
+          >
+            <Screen />
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
                   {/* Bottom Navigation */}
       <BottomNav active={tab} onChange={setTab} />
