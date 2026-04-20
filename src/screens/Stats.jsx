@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -30,9 +30,14 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function StatsScreen() {
-  const { profile, partner, user, historyData, historyLoaded, loadHistory } = useStore()
+  const { profile, partner, user, historyData, historyLoaded, loadHistory, myIntakeToday, partnerIntakeToday } = useStore()
   const [period, setPeriod] = useState('week')
   const [todayHourlyData, setTodayHourlyData] = useState([])
+  
+  // Prevent parent re-render by memoizing callbacks
+  const handlePeriodChange = useCallback((newPeriod) => {
+    setPeriod(newPeriod)
+  }, [])
 
   const myName      = profile?.display_name ?? '我'
   const partnerName = partner?.display_name  ?? '隊友'
@@ -98,7 +103,7 @@ export default function StatsScreen() {
     loadTodayHourly()
   }, [period, user, partner])
 
-    // Filter data by period
+        // Filter data by period
   const chartData = useMemo(() => {
     // For 'day' period, use hourly data
     if (period === 'day') {
@@ -106,7 +111,17 @@ export default function StatsScreen() {
     }
     
     // For other periods, use daily data
-    if (!historyData.length) return []
+    // If no history data, create a single data point for today
+    if (!historyData.length) {
+      const today = new Date()
+      const label = today.toLocaleDateString('zh-TW', { weekday: 'short', day: 'numeric' })
+      return [{
+        date: label,
+        my: myIntakeToday,
+        partner: partnerIntakeToday,
+      }]
+    }
+    
     const days = PERIODS.find(p => p.id === period)?.days ?? 7
     const slice = historyData.slice(-days)
 
@@ -121,13 +136,13 @@ export default function StatsScreen() {
         partner: row.partner_total,
       }
     })
-  }, [historyData, period, todayHourlyData])
+  }, [historyData, period, todayHourlyData, myIntakeToday, partnerIntakeToday])
 
-    // Summary stats
+            // Summary stats
   const stats = useMemo(() => {
     if (!chartData.length) return { myAvg: 0, partnerAvg: 0, myWins: 0, partnerWins: 0, streak: 0, periodLabel: '每日' }
     
-    // Calculate average (skip if period is 'day')
+    // Calculate average based on actual days with data
     let myAvg = 0
     let partnerAvg = 0
     let periodLabel = '每日'
@@ -137,14 +152,20 @@ export default function StatsScreen() {
       myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0))
       partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0))
       periodLabel = '今日'
-    } else if (period === 'week') {
-      myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0) / chartData.length)
-      partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0) / chartData.length)
-      periodLabel = '週平均'
-    } else if (period === 'month') {
-      myAvg = Math.round(chartData.reduce((s, d) => s + d.my, 0) / chartData.length)
-      partnerAvg = Math.round(chartData.reduce((s, d) => s + d.partner, 0) / chartData.length)
-      periodLabel = '月平均'
+    } else {
+      // For week/month, calculate average based on days that have non-zero data
+      // Count only days where user actually logged water intake
+      const daysWithMyData = chartData.filter(d => d.my > 0).length
+      const daysWithPartnerData = chartData.filter(d => d.partner > 0).length
+      
+      const myTotal = chartData.reduce((s, d) => s + d.my, 0)
+      const partnerTotal = chartData.reduce((s, d) => s + d.partner, 0)
+      
+      // If no days with data, show 0; otherwise calculate average
+      myAvg = daysWithMyData > 0 ? Math.round(myTotal / daysWithMyData) : 0
+      partnerAvg = daysWithPartnerData > 0 ? Math.round(partnerTotal / daysWithPartnerData) : 0
+      
+      periodLabel = period === 'week' ? '週平均' : '月平均'
     }
     
     const myWins = chartData.filter(d => d.my >= myGoal && d.my > d.partner).length
@@ -160,8 +181,8 @@ export default function StatsScreen() {
     return { myAvg, partnerAvg, myWins, partnerWins, streak, periodLabel }
   }, [chartData, historyData, myGoal, period])
 
-  return (
-    <div className="screen" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)' }}>
+    return (
+    <div className="screen" style={{ background: 'linear-gradient(160deg, #020d1a 0%, #0a1628 60%, #0d1f3c 100%)', position: 'relative' }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="px-5 pt-4 pb-3"
@@ -171,17 +192,18 @@ export default function StatsScreen() {
         {/* Period tabs */}
         <div className="flex gap-1 mt-3 bg-white/5 rounded-xl p-1 relative">
           {PERIODS.map(p => (
-            <button
+                        <button
               key={p.id}
-              onClick={() => setPeriod(p.id)}
+              onClick={() => handlePeriodChange(p.id)}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200
                           relative z-10
                 ${period === p.id ? 'text-ocean-900' : 'text-white/40 hover:text-white/70'}`}
             >
-              {period === p.id && (
+                                          {period === p.id && (
                 <motion.div
-                  layoutId="tab-bg"
                   className="absolute inset-0 bg-aqua-300 rounded-lg"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                 />
               )}

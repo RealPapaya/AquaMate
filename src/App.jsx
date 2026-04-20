@@ -91,8 +91,8 @@ export default function App() {
                         bg-sky-500/6 blur-2xl" />
       </div>
 
-            {/* Screen with animated transitions */}
-      <div className="absolute inset-0" style={{ paddingBottom: '72px' }}>
+                                                {/* Screen with animated transitions */}
+      <div className="absolute inset-0" style={{ paddingBottom: '72px', overflow: 'hidden' }}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={tab}
@@ -101,7 +101,7 @@ export default function App() {
             animate="center"
             exit="exit"
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="h-full w-full"
+            className="absolute inset-0"
           >
             <Screen />
           </motion.div>
