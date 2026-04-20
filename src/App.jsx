@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import useStore  from './store/useStore'
 import BottomNav from './components/BottomNav'
 import DevTools  from './components/DevTools'
+import SetupGuide from './components/SetupGuide'
 import Home      from './screens/Home'
 import Stats     from './screens/Stats'
 import Profile   from './screens/Profile'
@@ -98,8 +99,11 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-            {/* Bottom Navigation */}
+                  {/* Bottom Navigation */}
       <BottomNav active={tab} onChange={setTab} />
+
+      {/* Setup Guide */}
+      <SetupGuide />
 
       {/* Dev Tools (development only) */}
       {import.meta.env.DEV && <DevTools />}

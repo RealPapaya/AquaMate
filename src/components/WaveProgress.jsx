@@ -3,13 +3,16 @@ import { motion, useSpring, useTransform, useMotionValueEvent } from 'framer-mot
 
 // Generate a sinusoidal wave SVG path that fills from bottom
 function buildWavePath(fillY, offset, amplitude, width, height) {
+  // Clamp fillY to valid range
+  const clampedFillY = Math.max(0, Math.min(height, fillY))
   const segments = 60
   const pts = []
   for (let i = 0; i <= segments; i++) {
     const x = (i / segments) * width
-    const y = fillY + Math.sin((i / segments) * Math.PI * 4 + offset) * amplitude
+    const y = clampedFillY + Math.sin((i / segments) * Math.PI * 4 + offset) * amplitude
     pts.push(`${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`)
   }
+  // Close the path by connecting to bottom corners
   return `${pts.join(' ')} L${width},${height} L0,${height} Z`
 }
 
@@ -21,7 +24,7 @@ export default function WaveProgress({
   mini      = false,
   className = '',
 }) {
-  const pct      = Math.min(current / Math.max(goal, 1), 1)
+    const pct      = Math.min(current / Math.max(goal, 1), 1)
   const radius   = size / 2 - 4
 
   // Spring-animated fill percentage
@@ -29,9 +32,16 @@ export default function WaveProgress({
 
   // Wave animation frame
   const rafRef   = useRef(null)
-  const [waves, setWaves] = useState({ w1: '', w2: '' })
   const offsetRef = useRef(0)
   const fillYRef  = useRef(size * (1 - pct))
+  
+  // Initialize waves with proper paths
+  const fillY = size * (1 - pct)
+  const amp = mini ? 4 : 8
+  const [waves, setWaves] = useState({
+    w1: buildWavePath(fillY, 0, amp, size, size),
+    w2: buildWavePath(fillY + amp * 0.5, Math.PI, amp * 0.6, size, size)
+  })
 
   // Track spring value to update fillYRef
   useMotionValueEvent(springPct, 'change', (v) => {
@@ -80,9 +90,9 @@ export default function WaveProgress({
             </linearGradient>
           </defs>
 
-          {/* Background circle */}
+                    {/* Background circle */}
           <circle cx={size / 2} cy={size / 2} r={radius}
-            fill="rgba(0,30,60,0.7)" stroke="rgba(0,196,216,0.25)" strokeWidth="1.5" />
+            fill="#0a1628" stroke="rgba(0,196,216,0.25)" strokeWidth="1.5" />
 
           {/* Wave fills */}
           <g clipPath={`url(#${clipId})`}>

@@ -19,6 +19,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   realtime: {
     params: { eventsPerSecond: 10 },
   },
+  global: {
+    headers: {
+      'Prefer': 'return=representation',
+    },
+  },
 })
 
 // ── Helper: get today's date string in user's local timezone ──

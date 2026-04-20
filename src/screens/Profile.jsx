@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BadgeCard, { BadgeLocked } from '../components/BadgeCard'
 import useStore, { BADGE_DEFS } from '../store/useStore'
 
-const AVATAR_OPTIONS = ['💧', '🌊', '🐳', '🦈', '🐬', '🐟', '⛵', '🏖️', '🌊', '💦']
+const AVATAR_OPTIONS = ['💧', '🌊', '🐳', '🦈', '🐬', '🐟', '⛵', '🏖️', '🌿', '💦']
 const GOAL_OPTIONS   = [1500, 2000, 2500, 3000]
 
 export default function ProfileScreen() {

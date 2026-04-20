@@ -161,6 +161,9 @@ npm run build
 **Q: 隊友的資料沒有即時更新？**
 → 確認 Supabase Realtime 已為 `intake_logs`、`nudges`、`users` 開啟。
 
+**Q: 波浪圓圈下半部是黑色的？**
+→ 重新整理瀏覽器，波浪動畫已修復。
+
 **Q: PWA 無法「加入主畫面」？**
 → 確認 `public/icon.svg` 存在，且網站是 HTTPS（部署後才支援）。現已使用 SVG 格式，無需 PNG 檔案。
 

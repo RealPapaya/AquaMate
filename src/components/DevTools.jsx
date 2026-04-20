@@ -107,15 +107,20 @@ export default function DevTools() {
               {/* Quick Actions */}
               <div className="glass-light p-3 rounded-xl">
                 <div className="font-bold text-white/80 mb-2">快速測試</div>
-                <button
-                  onClick={() => {
-                    const store = useStore.getState()
-                    store.addIntake(100)
-                  }}
-                  className="w-full py-2 bg-aqua-300/20 hover:bg-aqua-300/30 rounded-lg text-aqua-200 font-semibold transition-colors"
-                >
-                  測試加水 +100ml
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const store = useStore.getState()
+                      store.addIntake(100)
+                    }}
+                    className="w-full py-2 bg-aqua-300/20 hover:bg-aqua-300/30 rounded-lg text-aqua-200 font-semibold transition-colors"
+                  >
+                    測試加水 +100ml
+                  </button>
+                  <div className="text-[10px] text-yellow-400">
+                    ⚠️ 如果看到 403/406 錯誤，請執行 fix-rls.sql
+                  </div>
+                </div>
               </div>
 
               {/* Environment Info */}
