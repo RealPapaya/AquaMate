@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap');
 
 /* ── Root & Body ────────────────────────────────────────── */
 :root {
@@ -40,8 +40,8 @@ body {
     @apply bg-ocean-800/40 backdrop-blur-md border border-white/10 rounded-2xl;
   }
 
-  .glass-light {
-    @apply bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl;
+    .glass-light {
+    @apply bg-white/5 backdrop-blur-sm border border-white/[0.08] rounded-2xl;
   }
 
   .btn-primary {

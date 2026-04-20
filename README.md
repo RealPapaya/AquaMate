@@ -9,11 +9,9 @@
 ```
 aquamate/
 ├── public/
-│   ├── favicon.svg              # App 圖示
-│   ├── manifest.json            # PWA 設定（加入主畫面）
-│   └── icons/
-│       ├── icon-192.png         # ⚠️ 需自行產生（見下方說明）
-│       └── icon-512.png         # ⚠️ 需自行產生
+│   ├── favicon.svg              # App 圖示（瀏覽器 tab）
+│   ├── icon.svg                 # PWA 圖示（統一 SVG 格式）
+│   └── manifest.json            # PWA 設定（加入主畫面）
 │
 ├── src/
 │   ├── main.jsx                 # React 入口點
@@ -77,21 +75,18 @@ npm run dev
 
 ---
 
-## 🖼️ 產生 PWA 圖示（必要）
+## 🖼️ PWA 圖示說明
 
-PWA「加入主畫面」需要 PNG 圖示。最簡單的方式：
+本專案已改用 **SVG 格式**統一所有圖示，無需額外產生 PNG 檔案：
 
-```bash
-# 安裝工具
-npm install -g pwa-asset-generator
+- `public/favicon.svg` - 瀏覽器分頁圖示
+- `public/icon.svg` - PWA 應用程式圖示（支援所有尺寸）
 
-# 用 favicon.svg 產生所有尺寸
-npx pwa-asset-generator public/favicon.svg public/icons --background "#020d1a" --padding "20%"
-```
-
-或手動用任何圖片編輯工具製作：
-- `public/icons/icon-192.png`（192×192 px）
-- `public/icons/icon-512.png`（512×512 px）
+✅ SVG 格式優勢：
+- 向量圖形，任何尺寸都清晰
+- 檔案小，載入快
+- 無需產生多個尺寸
+- 方便編輯和客製化
 
 ---
 
@@ -167,7 +162,7 @@ npm run build
 → 確認 Supabase Realtime 已為 `intake_logs`、`nudges`、`users` 開啟。
 
 **Q: PWA 無法「加入主畫面」？**
-→ 確認 `public/icons/icon-192.png` 和 `icon-512.png` 存在，且網站是 HTTPS（部署後才支援）。
+→ 確認 `public/icon.svg` 存在，且網站是 HTTPS（部署後才支援）。現已使用 SVG 格式，無需 PNG 檔案。
 
 **Q: 配對連結點了沒反應？**
 → 確認 Supabase SQL Editor 有執行 `SCHEMA.sql`，特別是 `invite_links` 表格。

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { BADGE_DEFS } from '../store/useStore'
+import { BADGE_SVG_MAP } from './icons/BadgeIcons'
 
 export default function BadgeCard({ badge, isNew = false }) {
   const def = BADGE_DEFS[badge.badge_type] ?? {
@@ -20,9 +21,15 @@ export default function BadgeCard({ badge, isNew = false }) {
       } : undefined}
       className="glass flex items-center gap-3 px-4 py-3"
     >
-      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-aqua-300/15
+            <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-aqua-300/15
                       border border-aqua-400/30 flex items-center justify-center">
-        <span style={{ fontSize: '22px', lineHeight: 1 }}>{def.emoji}</span>
+        {BADGE_SVG_MAP[badge.badge_type] ? (
+          <div className="text-aqua-300">
+            {BADGE_SVG_MAP[badge.badge_type]({ size: 28 })}
+          </div>
+        ) : (
+          <span style={{ fontSize: '22px', lineHeight: 1 }}>{def.emoji}</span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -55,9 +62,15 @@ export function BadgeLocked({ badgeType }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 rounded-2xl
                     border border-white/5 bg-white/2 opacity-40">
-      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-white/5
-                      border border-white/10 flex items-center justify-center grayscale">
-        <span style={{ fontSize: '22px', lineHeight: 1 }}>{def.emoji}</span>
+            <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-white/5
+                      border border-white/10 flex items-center justify-center grayscale opacity-50">
+        {BADGE_SVG_MAP[badgeType] ? (
+          <div className="text-white/40">
+            {BADGE_SVG_MAP[badgeType]({ size: 28 })}
+          </div>
+        ) : (
+          <span style={{ fontSize: '22px', lineHeight: 1 }}>{def.emoji}</span>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="font-bold text-white/40 text-sm">{def.title}</div>

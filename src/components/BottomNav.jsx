@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion'
+import WaterDropIcon from './icons/WaterDropIcon'
+import StatsIcon from './icons/StatsIcon'
+import BadgeIcon from './icons/BadgeIcon'
 
 const TABS = [
-  { id: 'home',    emoji: '💧', label: '今日' },
-  { id: 'stats',   emoji: '📊', label: '統計' },
-  { id: 'profile', emoji: '🏅', label: '個人' },
+  { id: 'home',    icon: WaterDropIcon, label: '今日' },
+  { id: 'stats',   icon: StatsIcon, label: '統計' },
+  { id: 'profile', icon: BadgeIcon, label: '個人' },
 ]
 
 export default function BottomNav({ active, onChange }) {
@@ -22,10 +25,13 @@ export default function BottomNav({ active, onChange }) {
             className="flex flex-col items-center gap-1 px-6 py-1 rounded-xl
                        transition-all duration-150 active:scale-90 select-none"
           >
-            <div className="relative">
-              <span className="text-xl leading-none" style={{ fontSize: '22px' }}>
-                {tab.emoji}
-              </span>
+                        <div className="relative">
+              <tab.icon 
+                size={24} 
+                className={`transition-colors duration-150 ${
+                  isActive ? 'text-aqua-300' : 'text-white/40'
+                }`}
+              />
               {isActive && (
                 <motion.div
                   layoutId="nav-indicator"

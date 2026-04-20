@@ -42,17 +42,25 @@ const useStore = create((set, get) => ({
 
   // ── Actions ─────────────────────────────────────────────
 
-  init: async () => {
+    init: async () => {
     set({ isLoading: true })
+    console.log('🔧 Initializing app...')
 
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!session) {
       // Auto sign-in anonymously
+      console.log('🔐 No session, signing in anonymously...')
       const { data, error } = await supabase.auth.signInAnonymously()
-      if (error) { set({ isLoading: false }); return }
+      if (error) { 
+        console.error('❌ Failed to sign in:', error)
+        set({ isLoading: false })
+        return 
+      }
+      console.log('✅ Signed in as:', data.user.id)
       set({ user: data.user })
     } else {
+      console.log('✅ Found existing session:', session.user.id)
       set({ user: session.user })
     }
 
@@ -61,6 +69,7 @@ const useStore = create((set, get) => ({
     await get().loadTodayIntake()
     await get().loadBadges()
 
+    console.log('✅ App initialized')
     set({ isLoading: false })
   },
 
@@ -146,18 +155,24 @@ const useStore = create((set, get) => ({
     set({ myIntakeToday: total })
   },
 
-  addIntake: async (amountMl) => {
+    addIntake: async (amountMl) => {
     const { user, myIntakeToday, profile } = get()
     if (!user || amountMl <= 0) return
+
+    console.log('Adding intake:', amountMl, 'Current:', myIntakeToday)
 
     const { error } = await supabase.from('intake_logs').insert({
       user_id:   user.id,
       amount_ml: amountMl,
     })
 
-    if (error) return
+    if (error) {
+      console.error('Failed to add intake:', error)
+      return
+    }
 
     const newTotal = myIntakeToday + amountMl
+    console.log('New total:', newTotal)
     set({ myIntakeToday: newTotal })
 
     // Badge checks (non-blocking)
