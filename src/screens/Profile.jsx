@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BadgeCard, { BadgeLocked } from '../components/BadgeCard'
+import GoalSetting from '../components/GoalSetting'
 import useStore, { BADGE_DEFS } from '../store/useStore'
 import { supabase } from '../lib/supabase'
 
 const AVATAR_OPTIONS = ['💧', '🌊', '🐳', '🦈', '🐬', '🐟', '⛵', '🏖️', '🌿', '💦']
-const GOAL_OPTIONS   = [1500, 2000, 2500, 3000]
 
 export default function ProfileScreen() {
   const { profile, partner, myBadges, pairId, pairNotification, user, updateProfile, generateInviteLink, acceptInviteToken, unpair } = useStore()
@@ -217,21 +217,11 @@ export default function ProfileScreen() {
                 ))}
               </div>
 
-              <div className="text-xs font-bold text-white/50 mt-4 mb-3 uppercase tracking-wider">每日目標</div>
-              <div className="flex gap-2">
-                {GOAL_OPTIONS.map(g => (
-                  <button
-                    key={g}
-                    onClick={() => setGoal(g)}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all
-                      ${goal === g
-                        ? 'bg-aqua-300/25 text-aqua-200 border border-aqua-400/50'
-                        : 'bg-white/5 text-white/40 border border-white/10'}`}
-                  >
-                    {g}ml
-                  </button>
-                ))}
-              </div>
+                            <div className="text-xs font-bold text-white/50 mt-4 mb-3 uppercase tracking-wider">每日目標</div>
+              <GoalSetting 
+                currentGoal={goal} 
+                onSave={(newGoal) => setGoal(newGoal)}
+              />
             </motion.div>
           )}
         </AnimatePresence>
