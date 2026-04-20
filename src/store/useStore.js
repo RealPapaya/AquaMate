@@ -1,18 +1,87 @@
 import { create } from 'zustand'
 import { supabase, todayStr, createInviteLink, acceptInvite } from '../lib/supabase'
+import * as BadgeManager from '../lib/badgeManager'
+import * as BadgeExt from '../lib/badgeManagerExtended'
 
 // ── Badge definitions ────────────────────────────────────────
 export const BADGE_DEFS = {
-  first_log:     { emoji: '💧', title: '初次報到',   desc: '完成第一次喝水紀錄' },
-  streak_3:      { emoji: '🔥', title: '連續3天',    desc: '連續 3 天達成目標' },
-  streak_7:      { emoji: '⚡', title: '一週霸主',   desc: '連續 7 天達成目標' },
-  streak_30:     { emoji: '👑', title: '月度傳說',   desc: '連續 30 天達成目標' },
-  big_drinker:   { emoji: '🌊', title: '海量飲者',   desc: '單日攝水超過 3000 ml' },
-  beat_partner:  { emoji: '🏆', title: '先馳得點',   desc: '比隊友先達到今日目標' },
-  early_bird:    { emoji: '🌅', title: '早起水鳥',   desc: '早上 8 點前完成 500 ml' },
-  night_owl:     { emoji: '🦉', title: '深夜補水',   desc: '晚上 11 點後記錄喝水' },
-  pair_champion: { emoji: '💑', title: '夥伴之力',   desc: '和隊友都同天達成目標' },
+  // 🐶 新手入門 (5個)
+  first_log:        { emoji: '💧', title: '初次報到',     desc: '完成第一次喝水紀錄' },
+  first_goal:       { emoji: '🌟', title: '首次達標',     desc: '第一次達成每日目標' },
+  week_warrior:     { emoji: '💪', title: '一週戰士',     desc: '使用應用滿一週' },
+  month_master:     { emoji: '🏅', title: '月度大師',     desc: '使用應用滿一月' },
+  hundred_days:     { emoji: '👴', title: '百日老手',     desc: '使用應用滿 100 天' },
+  
+  // 🔥 連續達標 (7個)
+  streak_3:         { emoji: '🔥', title: '三日之火',     desc: '連續 3 天達成目標' },
+  streak_7:         { emoji: '⚡', title: '一週霸主',     desc: '連續 7 天達成目標' },
+  streak_14:        { emoji: '🔥', title: '雙週戰神',     desc: '連續 14 天達成目標' },
+  streak_30:        { emoji: '👑', title: '月度傳說',     desc: '連續 30 天達成目標' },
+  streak_50:        { emoji: '🌟', title: '五十天王',     desc: '連續 50 天達成目標' },
+  streak_100:       { emoji: '🏆', title: '百日神話',     desc: '連續 100 天達成目標' },
+  streak_365:       { emoji: '💎', title: '年度鑽王',     desc: '連續 365 天達成目標' },
+  
+  // 🌊 水量挑戰 (10個)
+  light_drinker:    { emoji: '💦', title: '淺嚐者',       desc: '單日達到 1000 ml' },
+  moderate_drinker: { emoji: '💧', title: '正常人',     desc: '單日達到 2000 ml' },
+  big_drinker:      { emoji: '🌊', title: '海量飲者',     desc: '單日攝水超過 3000 ml' },
+  mega_hydrator:    { emoji: '🌊', title: '水桶挑戰',     desc: '單日攝水超過 4000 ml' },
+  ultra_hydrator:   { emoji: '🔱', title: '張簡晨昀',     desc: '單日攝水超過 5000 ml' },
+  total_10l:        { emoji: '💧', title: '十公升',       desc: '總累計喝水 10 公升' },
+  total_50l:        { emoji: '🌊', title: '五十公升',     desc: '總累計喝水 50 公升' },
+  total_100l:       { emoji: '🔱', title: '百升大師',     desc: '總累計喝水 100 公升' },
+  total_500l:       { emoji: '🌊', title: '水桶挑戰',     desc: '總累計喝水 500 公升' },
+  total_1000l:      { emoji: '🌏', title: '海王',     desc: '總累計喝水 1000 公升' },
+  
+  // 🕰️ 時間大師 (6個)
+  early_bird:       { emoji: '🌅', title: '早起水鳥',     desc: '早上 7 點前完成 500 ml' },
+  morning_hydrator: { emoji: '☕', title: '晨間補水',     desc: '上午完成一半目標' },
+  lunch_champion:   { emoji: '🍴', title: '午餐冠軍',     desc: '午餐時間喝足 300 ml' },
+  afternoon_boost:  { emoji: '☀️', title: '下午加油',     desc: '下午 2-4 點間喝水 500 ml' },
+  evening_warrior:  { emoji: '🌆', title: '晚間勇士',     desc: '晚餐前達成目標' },
+  night_owl:        { emoji: '🦉', title: '深夜補水',     desc: '晚上 11 點後記錄喝水' },
+  
+  // 💑 雙人成就 (8個)
+  first_pair:       { emoji: '🤝', title: '結識水伴',     desc: '完成第一次配對' },
+  beat_partner:     { emoji: '🏆', title: '先馳得點',     desc: '比隊友先達到今日目標' },
+  pair_champion:    { emoji: '💑', title: '夥伴之力',     desc: '和隊友都同天達成目標' },
+  sync_week:        { emoji: '🔄', title: '同步一週',     desc: '和隊友連續一週都達標' },
+  support_master:   { emoji: '👏', title: '推力大師',     desc: '發送 10 次 Nudge 提醒' },
+  nudge_receiver:   { emoji: '🔔', title: '受推之王',     desc: '收到 10 次 Nudge 提醒' },
+  team_hydration:   { emoji: '🤝', title: '團隊水力',     desc: '和隊友總共喝足 50 公升' },
+  long_partnership: { emoji: '💍', title: '長久夥伴',     desc: '配對滿 30 天' },
+  
+  // 🏅 特殊成就 (9個)
+  perfect_day:      { emoji: '🌟', title: '完美一天',     desc: '一天內每小時都有喝水' },
+  consistent:       { emoji: '🎯', title: '穩定輸出',     desc: '連續 7 天都在目標±20%' },
+  overachiever:     { emoji: '🚀', title: '超越自我',     desc: '連續 7 天都超過目標 20%' },
+  comeback_king:    { emoji: '🔙', title: '王者歸來',     desc: '中斷後重新連續 7 天' },
+  goal_setter:      { emoji: '🎯', title: '目標制定者',   desc: '修改過 3 次每日目標' },
+  badge_collector:  { emoji: '🏅', title: '勳章收藏家',   desc: '獲得 10 個勳章' },
+  badge_master:     { emoji: '🏅', title: '勳章大師',     desc: '獲得 25 個勳章' },
+  badge_legend:     { emoji: '🏆', title: '勳章傳說',     desc: '獲得 40 個勳章' },
+  completionist:    { emoji: '💎', title: '全成就達成',   desc: '獲得所有勳章！' },
+  
+    // 🎉 特殊節日 (5個)
+  new_year:         { emoji: '🎆', title: '第一滴水',   desc: '在元旦達成目標' },
+  valentine:        { emoji: '💖', title: '情人節水愛',   desc: '情人節和隊友一起達標' },
+  birthday:         { emoji: '🎂', title: '生日快樂',     desc: '在生日當天達成目標' },
+  summer_hydration: { emoji: '☀️', title: '夏日補水',     desc: '夏天連續 7 天達成目標' },
+  winter_warrior:   { emoji: '❄️', title: '冬日戰士',     desc: '冬天連續 7 天達成目標' },
+  
+  // 🚫 警示勳章（負面成就）(10個)
+  dehydrated:       { emoji: '😵', title: '脱水了',       desc: '一整天沒喝足水分', negative: true },
+  zero_day:         { emoji: '💤', title: '沙漠跳鼠',     desc: '一整天完全沒有記錄', negative: true },
+  lazy_week:        { emoji: '😴', title: '懶惰一週',     desc: '連續 7 天都未達標', negative: true },
+  barely_trying:    { emoji: '😪', title: '極少努力',     desc: '單日只喝不到 500 ml', negative: true },
+  ghost_user:       { emoji: '👻', title: '隱形人',       desc: '連續 3 天沒有使用應用', negative: true },
+  streak_killer:    { emoji: '💔', title: '功虧一簣',     desc: '中斷了 30+ 天的連續記錄', negative: true },
+  midnight_desert:  { emoji: '🏜️', title: '半夜沙漠',     desc: '整天到晚上才開始喝水', negative: true },
+  partner_loser:    { emoji: '😔', title: '隊友落後',     desc: '連續 7 天都輸給隊友', negative: true },
+  procrastinator:   { emoji: '⏰', title: '拖延症患者',   desc: '晚上 10 點後才達標', negative: true },
+  forgotten_app:    { emoji: '📱', title: '被遺忘的APP', desc: '連續 7 天沒有使用', negative: true },
 }
+
 
 const useStore = create((set, get) => ({
   // ── Auth ────────────────────────────────────────────────
@@ -92,7 +161,7 @@ const useStore = create((set, get) => ({
       // complete user data with incomplete data
     })
 
-            await get().loadProfile()
+                        await get().loadProfile()
     const partner = await get().loadPartner()
     await get().loadTodayIntake()
     await get().loadBadges()
@@ -100,7 +169,16 @@ const useStore = create((set, get) => ({
         // Always start realtime (to receive pair notifications even when not paired)
     const cleanup = get().startRealtimeSubscription()
     set({ realtimeCleanup: cleanup })
+    
+    // 🎯 檢查使用時長勳章
+    const { myBadges } = get()
+    BadgeManager.checkUsageBadges(session.user.id, myBadges)
+      .catch(err => console.error('🚫 Usage badge check error:', err))
 
+    // 👻 檢查不活躍勳章
+    BadgeExt.checkInactiveBadges(session.user.id, myBadges)
+      .catch(err => console.error('🚫 Inactive badge check error:', err))
+      
     console.log('✅ App initialized')
     set({ isLoading: false })
   },
@@ -118,20 +196,27 @@ const useStore = create((set, get) => ({
     if (data) set({ profile: data })
   },
 
-  updateProfile: async (updates) => {
-    const { user, profile } = get()
-    if (!user) return
+updateProfile: async (updates) => {
+  const { user, profile, myBadges } = get()
+  if (!user) return
 
-    const { data, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single()
+  const { error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', user.id)
 
-    if (!error && data) set({ profile: data })
-    return { error }
-  },
+  if (!error) {
+    set({ profile: { ...profile, ...updates } })
+    
+    // 🎯 檢查目標修改勳章
+    if (updates.daily_goal_ml && updates.daily_goal_ml !== profile?.daily_goal_ml) {
+      BadgeExt.checkGoalChangeBadge(user.id, myBadges)
+        .catch(err => console.error('🚫 Goal change badge check error:', err))
+    }
+  }
+
+  return { error }
+},
 
     loadPartner: async () => {
     const { user } = get()
@@ -201,20 +286,27 @@ const useStore = create((set, get) => ({
       return
     }
 
-    const newTotal = myIntakeToday + amountMl
+        const newTotal = myIntakeToday + amountMl
     console.log('New total:', newTotal)
     set({ myIntakeToday: newTotal })
 
-    // Badge checks (non-blocking)
-    get().checkAndAwardBadge('first_log')
-    if (newTotal >= 3000) get().checkAndAwardBadge('big_drinker')
+    // 🏆 勳章檢查 (non-blocking)
     const goal = profile?.daily_goal_ml ?? 2000
+    const hour = new Date().getHours()
+    const { myBadges } = get()
+    
+    // 使用勳章管理器檢查
+    BadgeManager.checkIntakeBadges(user.id, myBadges, {
+      newTotal,
+      amount: amountMl,
+      goal,
+      hour,
+    }).catch(err => console.error('🚫 Badge check error:', err))
+    
+    // 達標檢查
     if (newTotal >= goal) {
       get().checkGoalReached()
     }
-    const hour = new Date().getHours()
-    if (hour < 8) get().checkAndAwardBadge('early_bird')
-    if (hour >= 23) get().checkAndAwardBadge('night_owl')
   },
 
   removeLastIntake: async () => {
@@ -264,33 +356,71 @@ const useStore = create((set, get) => ({
     }
   },
 
-  checkGoalReached: async () => {
-    const { partnerIntakeToday, partner, profile } = get()
+    checkGoalReached: async () => {
+    const { user, partnerIntakeToday, partner, profile, myBadges, myIntakeToday, historyData } = get()
+    if (!user) return
+    
     const partnerGoal = partner?.daily_goal_ml ?? 2000
     const myGoal = profile?.daily_goal_ml ?? 2000
-    const myTotal = get().myIntakeToday
 
-    if (myTotal >= myGoal && partnerIntakeToday < partnerGoal) {
-      get().checkAndAwardBadge('beat_partner')
-    }
-    if (myTotal >= myGoal && partnerIntakeToday >= partnerGoal) {
-      get().checkAndAwardBadge('pair_champion')
-    }
-  },
+    // 🏆 使用勳章管理器檢查達標相關勳章
+    BadgeManager.checkGoalBadges(user.id, myBadges, {
+      myIntake: myIntakeToday,
+      myGoal,
+      partnerIntake: partnerIntakeToday,
+      partnerGoal,
+      hasPartner: !!partner,
+    }).catch(err => console.error('🚫 Goal badge check error:', err))
+    
+    // 🎉 檢查節日勳章
+    BadgeManager.checkHolidayBadges(user.id, myBadges, {
+      intakeToday: myIntakeToday,
+      goal: myGoal,
+      hasPartner: !!partner,
+      partnerIntake: partnerIntakeToday,
+      partnerGoal,
+    }).catch(err => console.error('🚫 Holiday badge check error:', err))
+    
+    // 📅 檢查每日勳章
+    const hour = new Date().getHours()
+    BadgeManager.checkDailyBadges(user.id, myBadges, {
+      intakeToday: myIntakeToday,
+      goal: myGoal,
+      hour,
+    }).catch(err => console.error('🚫 Daily badge check error:', err))
+    
+    // 💍 檢查長久夥伴
+    if (partner) {
+      BadgeExt.checkLongPartnershipBadge(user.id, myBadges)
+        .catch(err => console.error('🚫 Partnership badge check error:', err))
+        
+      // 🤝 檢查團隊水力
+      BadgeExt.checkTeamHydrationCached(user.id, partner.id, myBadges)
+        .catch(err => console.error('🚫 Team hydration badge check error:', err))
+  }
+  
+  // 使用快取版本的總累計檢查
+  BadgeExt.checkTotalVolumeBadgesCached(user.id, myBadges)
+    .catch(err => console.error('🚫 Total volume badge check error:', err))
+},
 
   // ── Nudge ───────────────────────────────────────────────
   sendNudge: async () => {
-    const { user, partner, nudgeCooldown } = get()
-    if (!user || !partner || nudgeCooldown) return
+  const { user, partner, nudgeCooldown, myBadges } = get()
+  if (!user || !partner || nudgeCooldown) return
 
-    set({ nudgeCooldown: true })
-    setTimeout(() => set({ nudgeCooldown: false }), 30_000)  // 30s cooldown
+  set({ nudgeCooldown: true })
+  setTimeout(() => set({ nudgeCooldown: false }), 30_000)
 
-    await supabase.from('nudges').insert({
-      from_user_id: user.id,
-      to_user_id:   partner.id,
-    })
-  },
+  await supabase.from('nudges').insert({
+    from_user_id: user.id,
+    to_user_id:   partner.id,
+  })
+  
+  // 🔔 記錄 Nudge 並檢查勳章
+  BadgeExt.recordNudgeAndCheck(user.id, partner.id, myBadges, [])
+    .catch(err => console.error('🚫 Nudge badge check error:', err))
+},
 
     triggerNudge: () => {
     set({ nudgeActive: true })
@@ -349,9 +479,13 @@ const useStore = create((set, get) => ({
     return createInviteLink(user.id)
   },
 
-      acceptInviteToken: async (token) => {
-    const { user } = get()
+            acceptInviteToken: async (token) => {
+    const { user, myBadges } = get()
     if (!user) throw new Error('未登入')
+    
+    // 檢查是否是第一次配對
+    const isFirstPair = !myBadges.some(b => b.badge_type === 'first_pair')
+    
     const pair = await acceptInvite(token, user.id)
     // Immediately reload partner data
     await get().loadPartner()
@@ -360,6 +494,12 @@ const useStore = create((set, get) => ({
     if (realtimeCleanup) realtimeCleanup()
     const cleanup = get().startRealtimeSubscription()
     set({ realtimeCleanup: cleanup })
+    
+    // 🤝 配對勳章檢查
+    if (isFirstPair) {
+      BadgeManager.checkAndAwardBadge(user.id, 'first_pair', myBadges)
+        .catch(err => console.error('🚫 Pair badge check error:', err))
+    }
     // Also reload badges
     await get().loadBadges()
     return pair

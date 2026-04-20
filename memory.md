@@ -41,6 +41,68 @@
 
 ## 🔧 最近修改記錄
 
+### 2026-04-20 - 勳章系統大幅擴充 (60個勳章 + 觸發系統)
+
+#### 新增功能
+1. **60 個勳章定義**
+   - 50 個正面成就（新手、連續、水量、時間、雙人、特殊、節日）
+   - 10 個負面警示（不喝水、拖延、中斷等）
+
+2. **勳章管理器** (`src/lib/badgeManager.js`)
+   - 模組化設計，一邊放成就一邊處理觸發
+   - 9 個主要觸發函數：
+     - `checkIntakeBadges()` - 喝水相關
+     - `checkGoalBadges()` - 達標相關
+     - `checkStreakBadges()` - 連續天數
+     - `checkTotalVolumeBadges()` - 總累計
+     - `checkPairBadges()` - 配對相關
+     - `checkDailyBadges()` - 每日檢查
+     - `checkHolidayBadges()` - 節日特殊
+     - `checkUsageBadges()` - 使用時長
+     - `checkMetaBadges()` - 元勳章
+
+3. **Store 整合**
+   - `addIntake()` 中調用 `checkIntakeBadges()`
+   - `checkGoalReached()` 中調用多個檢查函數
+   - `init()` 中調用 `checkUsageBadges()`
+   - `acceptInviteToken()` 中調用配對檢查
+
+#### 檔案更新
+- `BADGES_50.js` - 60 個勳章定義
+- `src/lib/badgeManager.js` - 勳章管理器（新建）
+- `src/store/useStore.js` - 整合勳章管理器
+- `BADGE_TRIGGERS.md` - 觸發邏輯文檔
+- `BADGE_SYSTEM_COMPLETE.md` - 完整實作總結
+
+#### 已實現的勳章觸發
+✅ 喝水相關：first_log, 水量里程碁, 時間相關
+✅ 連續達標：3/7/14/30/50/100/365 天
+✅ 總累計：10/50/100/500/1000 公升
+✅ 雙人成就：first_pair, beat_partner, pair_champion, sync_week
+✅ 使用時長：7/30/100 天
+✅ 特殊成就：perfect_day, consistent, overachiever
+✅ 負面勳章：zero_day, lazy_week, procrastinator 等
+
+#### 需要資料庫 Migration 的勳章
+⏳ support_master, nudge_receiver - Nudge 計數
+⏳ goal_setter - 目標修改計數
+⏳ long_partnership - 配對時長
+⏳ team_hydration - 團隊總水量
+⏳ ghost_user, forgotten_app - 不活躍檢測
+
+#### 完成度
+- 📝 代碼設定：100% ✅
+- 📦 資料庫：等待 Migration ⏳
+- 🎮 立即可用：~50 個勳章 (85%)
+
+#### 重要檔案
+- `SETUP_COMPLETE.md` - ⭐ 設定完成總結
+- `BADGE_SYSTEM_CHECK.md` - 完整檢查報告
+- `SCHEMA_UPDATE_BADGES.sql` - 資料庫 Migration
+- `TEST_BADGES.js` - 測試腳本
+
+---
+
 ### 2026-04-20 - 匿名認證移除 + Session 恢復修復
 
 #### 問題
