@@ -45,10 +45,11 @@ const useStore = create((set, get) => ({
 
   // ── Actions ─────────────────────────────────────────────
 
-        init: async () => {
+                init: async () => {
     set({ isLoading: true })
     console.log('🔧 Initializing app...')
 
+    // First, check for existing session
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!session) {
@@ -59,6 +60,16 @@ const useStore = create((set, get) => ({
 
     console.log('✅ Found session:', session.user.email || session.user.id)
     set({ user: session.user })
+
+    // Setup auth state change listener for future changes
+    supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('🔐 Auth state changed:', _event, session?.user?.email)
+      if (session?.user) {
+        set({ user: session.user })
+      } else {
+        set({ user: null, profile: null, partner: null })
+      }
+    })
 
             await get().loadProfile()
     const partner = await get().loadPartner()

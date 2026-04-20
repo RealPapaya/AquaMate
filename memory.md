@@ -40,6 +40,30 @@
 
 ## 🔧 最近修改記錄
 
+### 2026-04-20 - Session 恢復修復 + 帳號資訊顯示優化
+
+#### 問題
+1. 網頁重整後會登出，但帳號資訊顯示「未設定」
+2. 雲端同步狀態仍顯示「已啟用」，但 user.email 為 null
+3. Session 恢復時機不正確
+
+#### 解決方案
+1. **src/store/useStore.js - init()**
+   - 添加 `onAuthStateChange` 監聽器
+   - 確保 auth 狀態變更時正確更新 user 狀態
+   - 保持 session 持久化
+
+2. **src/screens/Profile.jsx - 帳號資訊區塊**
+   - 添加 `userEmail` 檢查
+   - 無 email 時顯示「正在載入...」狀態
+   - 有 email 時才顯示雲端同步狀態
+
+#### 修改檔案
+- `src/store/useStore.js` - 新增 onAuthStateChange 監聽
+- `src/screens/Profile.jsx` - 條件渲染帳號資訊
+
+---
+
 ### 2026-04-20 - Realtime 重複訂閱修復 + 統計平均值優化
 
 #### 問題

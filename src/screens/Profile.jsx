@@ -340,36 +340,52 @@ export default function ProfileScreen() {
         <div className="glass px-4 py-4 space-y-3">
           <div className="text-sm font-bold text-white/60 uppercase tracking-wider">🔐 帳號資訊</div>
           
-          {/* Login Info */}
+                    {/* Login Info */}
           <div className="space-y-2">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
-              <span className="text-lg">
-                {isGoogleLogin ? '🔵' : '📧'}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs text-white/40 font-semibold">
-                  {isGoogleLogin ? 'Google 帳號' : 'Email 帳號'}
+            {userEmail ? (
+              <>
+                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
+                  <span className="text-lg">
+                    {isGoogleLogin ? '🔵' : '📧'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-white/40 font-semibold">
+                      {isGoogleLogin ? 'Google 帳號' : 'Email 帳號'}
+                    </div>
+                    <div className="text-sm text-white/80 font-medium truncate">
+                      {userEmail}
+                    </div>
+                  </div>
+                  <div className="stat-chip text-[10px]">已登入</div>
                 </div>
-                <div className="text-sm text-white/80 font-medium truncate">
-                  {userEmail || '未設定'}
-                </div>
-              </div>
-              <div className="stat-chip text-[10px]">已登入</div>
-            </div>
 
-            {/* Cloud Sync Info */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
-              <span className="text-emerald-400 text-sm">☁️</span>
-              <div className="flex-1">
-                <div className="text-xs text-emerald-300 font-semibold">
-                  雲端同步已啟用
+                {/* Cloud Sync Info */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+                  <span className="text-emerald-400 text-sm">☁️</span>
+                  <div className="flex-1">
+                    <div className="text-xs text-emerald-300 font-semibold">
+                      雲端同步已啟用
+                    </div>
+                    <div className="text-[10px] text-emerald-400/60">
+                      資料已備份到 Supabase 雲端
+                    </div>
+                  </div>
+                  <span className="text-emerald-400 text-xs">✓</span>
                 </div>
-                <div className="text-[10px] text-emerald-400/60">
-                  資料已備份到 Supabase 雲端
+              </>
+            ) : (
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-400/20">
+                <span className="text-amber-400 text-lg">⚠️</span>
+                <div className="flex-1">
+                  <div className="text-xs text-amber-300 font-semibold">
+                    正在載入帳號資訊...
+                  </div>
+                  <div className="text-[10px] text-amber-400/60">
+                    請稍候
+                  </div>
                 </div>
               </div>
-              <span className="text-emerald-400 text-xs">✓</span>
-            </div>
+            )}
           </div>
 
           {/* Logout Button */}
